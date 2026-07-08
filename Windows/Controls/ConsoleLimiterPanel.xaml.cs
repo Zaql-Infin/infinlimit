@@ -80,7 +80,7 @@ namespace InfinLimit.Windows.Controls
             var active = 0;
             foreach (var d in _devices) if (d.Enabled) active++;
             StatusLabel.Text = _devices.Count == 0
-                ? "No consoles — add an Xbox / PlayStation IP above"
+                ? "No consoles — add an IP above"
                 : $"{_devices.Count} console(s), {active} active";
         }
 
