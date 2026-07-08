@@ -42,12 +42,29 @@ namespace InfinLimit.Interception.Modules
         private WinDivert? _divert;
         private CancellationTokenSource? _cts;
 
+        // Game filter — null means "All Traffic"
+        public static GameProfile? SelectedGame;
+
+        public static readonly List<GameProfile> GameProfiles = new()
+        {
+            new GameProfile("All Traffic",   new()),
+            new GameProfile("Destiny 2",     new() { 3074, 3478, 3479, 3480, 7500, 9308 }),
+            new GameProfile("Call of Duty",  new() { 3074, 3075, 3478, 3479, 27015, 27016 }),
+            new GameProfile("Fortnite",      new() { 9000, 9010, 9020, 9030, 22222 }),
+            new GameProfile("GTA Online",    new() { 6672, 61455, 61456, 61457, 61458 }),
+            new GameProfile("Halo Infinite", new() { 3074, 3478, 3479 }),
+            new GameProfile("Apex Legends",  new() { 37015, 37016, 37017 }),
+        };
+
         // Reference back to the panel for UI updates
         public static Action? OnStateChanged;
 
         public ConsoleModule()
         {
             var cfg = Config.GetNamed("ConsoleModule");
+
+            var savedGame = cfg.GetSettings<string>("SelectedGame");
+            SelectedGame = GameProfiles.Find(g => g.Name == savedGame) ?? GameProfiles[1]; // default Destiny 2
 
             // Keybinds — "Keybind" suffix triggers correct JSON deserialization in GetSettings
             EnableKeybind.AddRange(cfg.GetSettings<List<Keycode>>("EnableKeybind") ?? new());
@@ -133,6 +150,13 @@ namespace InfinLimit.Interception.Modules
             Config.Save();
         }
 
+        public static void SaveGame()
+        {
+            var cfg = Config.GetNamed("ConsoleModule");
+            cfg.Settings["SelectedGame"] = SelectedGame?.Name ?? "All Traffic";
+            Config.Save();
+        }
+
         public static void SaveKeybinds()
         {
             var cfg = Config.GetNamed("ConsoleModule");
@@ -183,6 +207,14 @@ namespace InfinLimit.Interception.Modules
                         continue;
                     }
 
+                    // Skip packet if it doesn't match the selected game's ports
+                    if (SelectedGame != null && SelectedGame.Ports.Count > 0
+                        && !MatchesGamePorts(packet.Span, SelectedGame.Ports))
+                    {
+                        await _divert.SendAsync(packet, addr);
+                        continue;
+                    }
+
                     bool dropped = false;
 
                     foreach (var device in Devices)
@@ -217,6 +249,17 @@ namespace InfinLimit.Interception.Modules
             catch (TaskCanceledException) { }
             catch (Exception e) when (ct.IsCancellationRequested) { }
             catch (Exception e) { Logger.Error(e, "ConsoleModule"); }
+        }
+
+        private static bool MatchesGamePorts(ReadOnlySpan<byte> data, List<int> ports)
+        {
+            if (data.Length < 20) return false;
+            int ipHdrLen = (data[0] & 0x0F) * 4;
+            byte protocol = data[9];
+            if (protocol != 17 /* UDP */ || data.Length < ipHdrLen + 4) return false;
+            int srcPort = (data[ipHdrLen] << 8) | data[ipHdrLen + 1];
+            int dstPort = (data[ipHdrLen + 2] << 8) | data[ipHdrLen + 3];
+            return ports.Contains(srcPort) || ports.Contains(dstPort);
         }
 
         private static bool TryGetIpAddresses(ReadOnlySpan<byte> data, out string src, out string dst)
@@ -332,5 +375,19 @@ namespace InfinLimit.Interception.Modules
             _lastFill = now;
             _tokens = Math.Min(_rate, _tokens + (long)(elapsed * _rate));
         }
+    }
+
+    public class GameProfile
+    {
+        public string Name { get; }
+        public List<int> Ports { get; }
+
+        public GameProfile(string name, List<int> ports)
+        {
+            Name = name;
+            Ports = ports;
+        }
+
+        public override string ToString() => Name;
     }
 }

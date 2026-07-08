@@ -125,61 +125,84 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
+            <!-- Game selector -->
+            <Label Grid.Row="0" Grid.Column="0" Content="Game" Style="{StaticResource RowLabel}"/>
+            <ComboBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2" x:Name="GameSelector"
+                      SelectionChanged="GameSelector_Changed"
+                      Height="26" Margin="0,1,0,1"
+                      Background="{StaticResource BackColor}"
+                      Foreground="{StaticResource TextPrimary}"
+                      BorderBrush="{StaticResource DividorColor}"
+                      BorderThickness="1"
+                      FontFamily="Bahnschrift Light"
+                      FontSize="12">
+                <ComboBox.Resources>
+                    <Style TargetType="ComboBoxItem">
+                        <Setter Property="Background" Value="{StaticResource LightBackColor}"/>
+                        <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+                        <Setter Property="FontFamily" Value="Bahnschrift Light"/>
+                        <Setter Property="FontSize" Value="12"/>
+                        <Setter Property="Padding" Value="8,4"/>
+                    </Style>
+                </ComboBox.Resources>
+            </ComboBox>
+
             <!-- Enabled -->
-            <Label Grid.Row="0" Grid.Column="0" Content="Enabled" Style="{StaticResource RowLabel}"/>
-            <controls:Button Grid.Row="0" Grid.Column="1" x:Name="BindEnabled"
+            <Label Grid.Row="1" Grid.Column="0" Content="Enabled" Style="{StaticResource RowLabel}"/>
+            <controls:Button Grid.Row="1" Grid.Column="1" x:Name="BindEnabled"
                              Text="No keybind" Click="KeybindButtonClick" HorizontalAlignment="Right"/>
-            <controls:Checkbox Grid.Row="0" Grid.Column="2" x:Name="ChkEnabled"
+            <controls:Checkbox Grid.Row="1" Grid.Column="2" x:Name="ChkEnabled"
                                Width="22" Height="22" Margin="3,0,0,0"
                                MouseDown="ChkEnabled_Click"/>
 
             <!-- DL -->
-            <Label Grid.Row="1" Grid.Column="0" Content="DL" Style="{StaticResource RowLabel}"/>
-            <controls:Button Grid.Row="1" Grid.Column="1" x:Name="BindDL"
+            <Label Grid.Row="2" Grid.Column="0" Content="DL" Style="{StaticResource RowLabel}"/>
+            <controls:Button Grid.Row="2" Grid.Column="1" x:Name="BindDL"
                              Text="No keybind" Click="KeybindButtonClick" HorizontalAlignment="Right"/>
-            <controls:Checkbox Grid.Row="1" Grid.Column="2" x:Name="ChkDL"
+            <controls:Checkbox Grid.Row="2" Grid.Column="2" x:Name="ChkDL"
                                Width="22" Height="22" Margin="3,0,0,0"
                                MouseDown="ChkDL_Click"/>
 
             <!-- UL -->
-            <Label Grid.Row="2" Grid.Column="0" Content="UL" Style="{StaticResource RowLabel}"/>
-            <controls:Button Grid.Row="2" Grid.Column="1" x:Name="BindUL"
+            <Label Grid.Row="3" Grid.Column="0" Content="UL" Style="{StaticResource RowLabel}"/>
+            <controls:Button Grid.Row="3" Grid.Column="1" x:Name="BindUL"
                              Text="No keybind" Click="KeybindButtonClick" HorizontalAlignment="Right"/>
-            <controls:Checkbox Grid.Row="2" Grid.Column="2" x:Name="ChkUL"
+            <controls:Checkbox Grid.Row="3" Grid.Column="2" x:Name="ChkUL"
                                Width="22" Height="22" Margin="3,0,0,0"
                                MouseDown="ChkUL_Click"/>
 
             <!-- DL Slow -->
-            <Label Grid.Row="3" Grid.Column="0" Content="DL Slow" Style="{StaticResource RowLabel}"/>
-            <controls:Button Grid.Row="3" Grid.Column="1" x:Name="BindDLSlow"
+            <Label Grid.Row="4" Grid.Column="0" Content="DL Slow" Style="{StaticResource RowLabel}"/>
+            <controls:Button Grid.Row="4" Grid.Column="1" x:Name="BindDLSlow"
                              Text="No keybind" Click="KeybindButtonClick" HorizontalAlignment="Right"/>
-            <controls:Checkbox Grid.Row="3" Grid.Column="2" x:Name="ChkDLSlow"
+            <controls:Checkbox Grid.Row="4" Grid.Column="2" x:Name="ChkDLSlow"
                                Width="22" Height="22" Margin="3,0,0,0"
                                MouseDown="ChkDLSlow_Click"/>
 
             <!-- UL Slow -->
-            <Label Grid.Row="4" Grid.Column="0" Content="UL Slow" Style="{StaticResource RowLabel}"/>
-            <controls:Button Grid.Row="4" Grid.Column="1" x:Name="BindULSlow"
+            <Label Grid.Row="5" Grid.Column="0" Content="UL Slow" Style="{StaticResource RowLabel}"/>
+            <controls:Button Grid.Row="5" Grid.Column="1" x:Name="BindULSlow"
                              Text="No keybind" Click="KeybindButtonClick" HorizontalAlignment="Right"/>
-            <controls:Checkbox Grid.Row="4" Grid.Column="2" x:Name="ChkULSlow"
+            <controls:Checkbox Grid.Row="5" Grid.Column="2" x:Name="ChkULSlow"
                                Width="22" Height="22" Margin="3,0,0,0"
                                MouseDown="ChkULSlow_Click"/>
 
             <!-- Auto-resync -->
-            <Label Grid.Row="5" Grid.Column="0" Content="Auto-resync" Style="{StaticResource RowLabel}"/>
-            <controls:Button Grid.Row="5" Grid.Column="1" x:Name="BindAutoResync"
+            <Label Grid.Row="6" Grid.Column="0" Content="Auto-resync" Style="{StaticResource RowLabel}"/>
+            <controls:Button Grid.Row="6" Grid.Column="1" x:Name="BindAutoResync"
                              Text="No keybind" Click="KeybindButtonClick" HorizontalAlignment="Right"/>
-            <controls:Checkbox Grid.Row="5" Grid.Column="2" x:Name="ChkAutoResync"
+            <controls:Checkbox Grid.Row="6" Grid.Column="2" x:Name="ChkAutoResync"
                                Width="22" Height="22" Margin="3,0,0,0"
                                MouseDown="ChkAutoResync_Click"/>
 
             <!-- Buffering -->
-            <Label Grid.Row="6" Grid.Column="0" Content="Buffering" Style="{StaticResource RowLabel}"/>
-            <controls:Button Grid.Row="6" Grid.Column="1" x:Name="BindBuffering"
+            <Label Grid.Row="7" Grid.Column="0" Content="Buffering" Style="{StaticResource RowLabel}"/>
+            <controls:Button Grid.Row="7" Grid.Column="1" x:Name="BindBuffering"
                              Text="No keybind" Click="KeybindButtonClick" HorizontalAlignment="Right"/>
-            <controls:Checkbox Grid.Row="6" Grid.Column="2" x:Name="ChkBuffering"
+            <controls:Checkbox Grid.Row="7" Grid.Column="2" x:Name="ChkBuffering"
                                Width="22" Height="22" Margin="3,0,0,0"
                                MouseDown="ChkBuffering_Click"/>
         </Grid>

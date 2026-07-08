@@ -32,6 +32,14 @@ namespace InfinLimit.Windows.Controls
             RefreshEmptyState();
 
             ConsoleModule.OnStateChanged += () => Dispatcher.Invoke(RefreshCheckboxes);
+
+            // Populate game dropdown
+            foreach (var profile in ConsoleModule.GameProfiles)
+                GameSelector.Items.Add(profile);
+
+            GameSelector.SelectedItem = ConsoleModule.SelectedGame
+                ?? ConsoleModule.GameProfiles.Find(g => g.Name == "Destiny 2")
+                ?? ConsoleModule.GameProfiles[0];
         }
 
         public void SetModule(ConsoleModule module)
@@ -220,6 +228,15 @@ namespace InfinLimit.Windows.Controls
             ConsoleModule.Buffering = !ConsoleModule.Buffering;
             ConsoleModule.SaveFlags();
             ConsoleModule.OnStateChanged?.Invoke();
+        }
+
+        private void GameSelector_Changed(object sender, SelectionChangedEventArgs e)
+        {
+            if (GameSelector.SelectedItem is GameProfile profile)
+            {
+                ConsoleModule.SelectedGame = profile.Ports.Count == 0 ? null : profile;
+                ConsoleModule.SaveGame();
+            }
         }
 
         // ── Device management ────────────────────────────────────────────────
