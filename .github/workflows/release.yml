@@ -41,8 +41,12 @@ jobs:
 
       - name: Fetch previous release for delta generation
         id: prev
+        continue-on-error: true
         shell: pwsh
         run: |
+          $token = "${{ secrets.RELEASES_PAT }}"
+          if (-not $token) { Write-Host "No RELEASES_PAT set, skipping delta fetch."; exit 0 }
+          $env:GH_TOKEN = $token
           $releases = gh release list --repo "${{ github.repository_owner }}/infinlimit-releases" `
             --json tagName,createdAt --jq 'sort_by(.createdAt) | reverse | .[0].tagName' 2>$null
           if ($releases) {
@@ -51,8 +55,6 @@ jobs:
             $nupkg = Get-ChildItem prev_release -Filter "*-full.nupkg" | Select-Object -First 1
             if ($nupkg) { "path=$($nupkg.FullName)" >> $env:GITHUB_OUTPUT }
           }
-        env:
-          GH_TOKEN: ${{ secrets.RELEASES_PAT }}
 
       - name: Build and package
         shell: pwsh
