@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using System.Windows;
 
 using Velopack;
 using Velopack.Sources;
@@ -8,8 +9,6 @@ namespace InfinLimit.Utility
 {
     public static class AppUpdater
     {
-        // TODO: set this to your releases repo once created
-        // e.g. "https://github.com/YourUser/infinlimit-releases"
         private const string ReleasesRepoUrl = "https://github.com/Zaql-Infin/infinlimit-releases";
 
         public static async Task CheckForUpdatesAsync()
@@ -29,7 +28,9 @@ namespace InfinLimit.Utility
                     return;
 
                 await mgr.DownloadUpdatesAsync(updateInfo);
-                mgr.ApplyUpdatesAndRestart(updateInfo);
+
+                // Apply on the UI thread so WPF shuts down cleanly before the new process launches
+                Application.Current.Dispatcher.Invoke(() => mgr.ApplyUpdatesAndRestart(updateInfo));
             }
             catch
             {

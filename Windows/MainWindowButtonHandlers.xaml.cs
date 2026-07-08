@@ -142,6 +142,14 @@ namespace InfinLimit
 
             if (_consolePageOpen)
             {
+                // Force the window wide/tall enough to show the full console panel.
+                // The Main grid height binding collapses to ~56px when TopBlock and
+                // ModuleSettingsBorder fade-collapse, so we pin MinHeight here.
+                // MinWidth forces the window wide enough that the panel's 330px content
+                // has room after ConsolePage margins (20+20) and padding (16+16).
+                Main.MinWidth = 550;
+                Main.MinHeight = 660;
+
                 TopBlock.ElementFadeOut(time);
                 ModuleSettingsBorder.ElementFadeOut(time);
                 ModuleSelection.ElementFadeOut(time);
@@ -152,6 +160,9 @@ namespace InfinLimit
             }
             else
             {
+                Main.MinWidth = 300;
+                Main.MinHeight = 445;
+
                 ConsolePage.ElementFadeOut(time);
                 TopBlock.ElementFadeIn(time);
                 ModuleSettingsBorder.ElementFadeIn(time);
