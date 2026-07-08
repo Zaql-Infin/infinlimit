@@ -87,7 +87,7 @@
         </Style>
     </UserControl.Resources>
 
-    <StackPanel Margin="0" Orientation="Vertical">
+    <StackPanel Margin="0" Orientation="Vertical" MaxWidth="240">
 
         <!-- Header -->
         <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
@@ -95,11 +95,8 @@
                   Fill="{StaticResource AccentColor}" Stretch="Uniform" Width="14" Height="14"
                   Margin="0,0,6,0" VerticalAlignment="Center"/>
             <TextBlock Foreground="{StaticResource AccentColor}"
-                       FontFamily="Bahnschrift Light" FontSize="12" VerticalAlignment="Center">
-                <Run Text="CONSOLE LIMITER"/>
-                <Run Text="  ·  " Foreground="{StaticResource TextSecondary}"/>
-                <Run Text="XBOX / PLAYSTATION" Foreground="{StaticResource TextSecondary}" FontSize="10"/>
-            </TextBlock>
+                       FontFamily="Bahnschrift Light" FontSize="12" VerticalAlignment="Center"
+                       Text="Console Limiter"/>
         </StackPanel>
 
         <!-- Game selector -->
@@ -134,7 +131,7 @@
         <Grid Margin="0,1">
             <Label Content="Enabled" Style="{StaticResource RowLabel}" HorizontalAlignment="Left"/>
             <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
-                <controls:Button x:Name="BindEnabled" Text="No keybind" Click="KeybindButtonClick"/>
+                <controls:Button x:Name="BindEnabled" Text="No keybind" MaxWidth="115" Click="KeybindButtonClick"/>
                 <controls:Checkbox x:Name="ChkEnabled" Width="20" Height="20" Margin="6,0,0,0"
                                    VerticalAlignment="Center" MouseDown="ChkEnabled_Click"/>
             </StackPanel>
@@ -144,7 +141,7 @@
         <Grid Margin="0,1">
             <Label Content="DL" Style="{StaticResource RowLabel}" HorizontalAlignment="Left"/>
             <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
-                <controls:Button x:Name="BindDL" Text="No keybind" Click="KeybindButtonClick"/>
+                <controls:Button x:Name="BindDL" Text="No keybind" MaxWidth="115" Click="KeybindButtonClick"/>
                 <controls:Checkbox x:Name="ChkDL" Width="20" Height="20" Margin="6,0,0,0"
                                    VerticalAlignment="Center" MouseDown="ChkDL_Click"/>
             </StackPanel>
@@ -154,7 +151,7 @@
         <Grid Margin="0,1">
             <Label Content="UL" Style="{StaticResource RowLabel}" HorizontalAlignment="Left"/>
             <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
-                <controls:Button x:Name="BindUL" Text="No keybind" Click="KeybindButtonClick"/>
+                <controls:Button x:Name="BindUL" Text="No keybind" MaxWidth="115" Click="KeybindButtonClick"/>
                 <controls:Checkbox x:Name="ChkUL" Width="20" Height="20" Margin="6,0,0,0"
                                    VerticalAlignment="Center" MouseDown="ChkUL_Click"/>
             </StackPanel>
@@ -164,7 +161,7 @@
         <Grid Margin="0,1">
             <Label Content="DL Slow" Style="{StaticResource RowLabel}" HorizontalAlignment="Left"/>
             <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
-                <controls:Button x:Name="BindDLSlow" Text="No keybind" Click="KeybindButtonClick"/>
+                <controls:Button x:Name="BindDLSlow" Text="No keybind" MaxWidth="115" Click="KeybindButtonClick"/>
                 <controls:Checkbox x:Name="ChkDLSlow" Width="20" Height="20" Margin="6,0,0,0"
                                    VerticalAlignment="Center" MouseDown="ChkDLSlow_Click"/>
             </StackPanel>
@@ -174,7 +171,7 @@
         <Grid Margin="0,1">
             <Label Content="UL Slow" Style="{StaticResource RowLabel}" HorizontalAlignment="Left"/>
             <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
-                <controls:Button x:Name="BindULSlow" Text="No keybind" Click="KeybindButtonClick"/>
+                <controls:Button x:Name="BindULSlow" Text="No keybind" MaxWidth="115" Click="KeybindButtonClick"/>
                 <controls:Checkbox x:Name="ChkULSlow" Width="20" Height="20" Margin="6,0,0,0"
                                    VerticalAlignment="Center" MouseDown="ChkULSlow_Click"/>
             </StackPanel>
@@ -184,7 +181,7 @@
         <Grid Margin="0,1">
             <Label Content="Auto-resync" Style="{StaticResource RowLabel}" HorizontalAlignment="Left"/>
             <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
-                <controls:Button x:Name="BindAutoResync" Text="No keybind" Click="KeybindButtonClick"/>
+                <controls:Button x:Name="BindAutoResync" Text="No keybind" MaxWidth="115" Click="KeybindButtonClick"/>
                 <controls:Checkbox x:Name="ChkAutoResync" Width="20" Height="20" Margin="6,0,0,0"
                                    VerticalAlignment="Center" MouseDown="ChkAutoResync_Click"/>
             </StackPanel>
@@ -194,7 +191,7 @@
         <Grid Margin="0,1">
             <Label Content="Buffering" Style="{StaticResource RowLabel}" HorizontalAlignment="Left"/>
             <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
-                <controls:Button x:Name="BindBuffering" Text="No keybind" Click="KeybindButtonClick"/>
+                <controls:Button x:Name="BindBuffering" Text="No keybind" MaxWidth="115" Click="KeybindButtonClick"/>
                 <controls:Checkbox x:Name="ChkBuffering" Width="20" Height="20" Margin="6,0,0,0"
                                    VerticalAlignment="Center" MouseDown="ChkBuffering_Click"/>
             </StackPanel>
