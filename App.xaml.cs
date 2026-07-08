@@ -33,8 +33,10 @@ namespace InfinLimit
 
             private void Application_Startup(object sender, StartupEventArgs e)
             {
-                var splash = new StartupProgressBar();
-                splash.Show();
+                var checker = new IdentityChecker();
+                checker.CheckSubs();
+                var main = new MainWindow(checker);
+                main.Show();
             }
             #region winBlur
 
