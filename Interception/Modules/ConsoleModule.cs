@@ -48,6 +48,7 @@ namespace InfinLimit.Interception.Modules
         public static readonly List<GameProfile> GameProfiles = new()
         {
             new GameProfile("All Traffic",   new()),
+            new GameProfile("Destiny 1",     new() { 3074, 3478, 3479, 3480, 7500, 9308 }),
             new GameProfile("Destiny 2",     new() { 3074, 3478, 3479, 3480, 7500, 9308 }),
             new GameProfile("Call of Duty",  new() { 3074, 3075, 3478, 3479, 27015, 27016 }),
             new GameProfile("Fortnite",      new() { 9000, 9010, 9020, 9030, 22222 }),
