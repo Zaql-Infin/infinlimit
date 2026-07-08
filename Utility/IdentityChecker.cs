@@ -1,5 +1,5 @@
-﻿using bluestacks.Models;
-using bluestacks.Utility;
+﻿using InfinLimit.Models;
+using InfinLimit.Utility;
 
 using System;
 using System.ServiceProcess;
@@ -18,7 +18,7 @@ using System.Threading.Tasks;
 using System.Text.RegularExpressions;
 using System.Linq.Expressions;
 
-namespace bluestacks
+namespace InfinLimit
 {
     public class IdentityChecker
     {
@@ -852,7 +852,7 @@ namespace bluestacks
         public void CheckSubs()
         {
             
-            Name = "bluestacks";
+            Name = "InfinLimit";
             Type = AccessType.Debug;
             
         }

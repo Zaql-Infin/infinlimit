@@ -1,4 +1,4 @@
-﻿using bluestacks.Utility;
+﻿using InfinLimit.Utility;
 
 using System;
 using System.Collections.Generic;
@@ -19,7 +19,7 @@ using System.Windows.Shapes;
 
 using UserControl = System.Windows.Controls.UserControl;
 
-namespace bluestacks.Controls
+namespace InfinLimit.Controls
 {
     public partial class Button : UserControl
     {

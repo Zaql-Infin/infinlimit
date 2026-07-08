@@ -1,5 +1,5 @@
-﻿using bluestacks.Models;
-using bluestacks.Utility;
+﻿using InfinLimit.Models;
+using InfinLimit.Utility;
 
 using System;
 using System.Collections.Generic;
@@ -9,7 +9,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Media;
 
-namespace bluestacks.Interception.Modules
+namespace InfinLimit.Interception.Modules
 {
     public class PvpModule : PacketModuleBase
     {

@@ -1,12 +1,12 @@
-﻿<Application x:Class="bluestacks.App"
+﻿<Application x:Class="InfinLimit.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="clr-namespace:bluestacks" 
-             xmlns:controls="clr-namespace:bluestacks.Controls"
-             xmlns:media="clr-namespace:bluestacks.Controls"
+             xmlns:local="clr-namespace:InfinLimit" 
+             xmlns:controls="clr-namespace:InfinLimit.Controls"
+             xmlns:media="clr-namespace:InfinLimit.Controls"
              xmlns:hc="https://handyorg.github.io/handycontrol"
              xmlns:sf="clr-namespace:WpfSnowfall"
-             StartupUri="Windows/StartupProgressBar.xaml">
+             Startup="Application_Startup">
 
     <Application.Resources>
         <ResourceDictionary>
@@ -21,18 +21,20 @@
             <FontFamily x:Key="SmallTitleFont">Bahnschrift Light</FontFamily>
             <FontFamily x:Key="BigTextFont">Microsoft JhengHei UI Light</FontFamily>
 
-            <!--Color palette-->
-            <Color x:Key="Accent">#EFACBE</Color>
-            <SolidColorBrush x:Key="TitleColor" Color="DarkRed"/>
-            <SolidColorBrush x:Key="AccentColor" Color="Crimson"/>
-            <SolidColorBrush x:Key="FancyColor" Color="Black"/>
-            <SolidColorBrush x:Key="InactiveColor" Color="Crimson"/>
-            <SolidColorBrush x:Key="BackColor" Color="MediumPurple"/>
-            <SolidColorBrush x:Key="LightBackColor" Color="PaleVioletRed"/>
-            <SolidColorBrush x:Key="DividorColor" Color="White"/>
+            <!-- InfinLimit color palette — dark slate + electric cyan accent -->
+            <Color x:Key="Accent">#00D4FF</Color>
+            <SolidColorBrush x:Key="TitleColor" Color="#00D4FF"/>
+            <SolidColorBrush x:Key="AccentColor" Color="#00D4FF"/>
+            <SolidColorBrush x:Key="FancyColor" Color="#0A0E1A"/>
+            <SolidColorBrush x:Key="InactiveColor" Color="#1E2A3A"/>
+            <SolidColorBrush x:Key="BackColor" Color="#080C14"/>
+            <SolidColorBrush x:Key="LightBackColor" Color="#0E1622"/>
+            <SolidColorBrush x:Key="DividorColor" Color="#1A2540"/>
 
-            <SolidColorBrush x:Key="Upload" Color="#DEBACE"/>
-            <SolidColorBrush x:Key="Download" Color="#d1f28e"/>
+            <SolidColorBrush x:Key="Upload" Color="#FF6B6B"/>
+            <SolidColorBrush x:Key="Download" Color="#00D4FF"/>
+            <SolidColorBrush x:Key="TextPrimary" Color="#E8F0FF"/>
+            <SolidColorBrush x:Key="TextSecondary" Color="#6B7FA3"/>
 
             <!-- Math Converter -->
             <local:MathConverter x:Key="Math" />
@@ -48,6 +50,7 @@
             <Geometry x:Key="QuestionMark">M12,2C13.1,2 14,2.9 14,4C14,5.1 13.1,6 12,6C10.9,6 10,5.1 10,4C10,2.9 10.9,2 12,2M21,9V7L15,1H5C3.89,1 3,1.89 3,3V21A2,2 0 0,0 5,23H19A2,2 0 0,0 21,21V9M19,21H5V3H12V9H19V21Z</Geometry>
             <Geometry x:Key="Speaker">M13.0355 8.5211C13.4261 8.1306 14.0674 8.1267 14.3881 8.5764 15.0882 9.5579 15.5 10.7592 15.5 12.0567 15.5 13.3541 15.0882 14.5554 14.3881 15.537 14.0674 15.9866 13.4261 15.9827 13.0355 15.5922 12.645 15.2017 12.6586 14.5725 12.9408 14.0978 13.296 13.5002 13.5 12.8023 13.5 12.0567 13.5 11.3111 13.296 10.6131 12.9408 10.0156 12.6586 9.5408 12.645 8.9116 13.0355 8.5211M15.864 5.6932C16.2545 5.3026 16.8921 5.2998 17.2419 5.7271 18.6532 7.4512 19.5 9.6553 19.5 12.0571 19.5 14.459 18.6532 16.6631 17.2419 18.3871 16.8921 18.8145 16.2545 18.8116 15.864 18.4211 15.4734 18.0306 15.4792 17.4007 15.8183 16.9648 16.8723 15.6098 17.5 13.9068 17.5 12.0571 17.5 10.2075 16.8723 8.5045 15.8183 7.1494 15.4792 6.7135 15.4734 6.0837 15.864 5.6932M11 16.5858V7.4142C11 6.5233 9.9229 6.0771 9.2929 6.7071L7.2929 8.7071C7.1054 8.8946 6.851 9 6.5858 9H5C4.4477 9 4 9.4477 4 10V14C4 14.5523 4.4477 15 5 15H6.5858C6.851 15 7.1054 15.1054 7.2929 15.2929L9.2929 17.2929C9.9229 17.9229 11 17.4767 11 16.5858Z</Geometry>
             <Geometry x:Key="Pin">M 12.956 18.956 L 9 15 l -3.956 -3.956 a 1 1 0 0 1 0.314 -1.626 l 5.261 -2.255 a 1 1 0 0 0 0.535 -0.548 l 1.283 -3.207 a 1 1 0 0 1 1.635 -0.336 l 6.856 6.856 a 1 1 0 0 1 -0.336 1.635 l -3.207 1.283 a 1 1 0 0 0 -0.548 0.535 l -2.255 5.261 a 1 1 0 0 1 -1.626 0.314 M 8 14 L 5 18 Q 3 21 6 19 L 10 16</Geometry>
+            <Geometry x:Key="ConsoleIcon">M21 6H3C1.9 6 1 6.9 1 8V16C1 17.1 1.9 18 3 18H21C22.1 18 23 17.1 23 16V8C23 6.9 22.1 6 21 6M11 13H8V16H6V13H3V11H6V8H8V11H11M15.5 15C14.7 15 14 14.3 14 13.5S14.7 12 15.5 12 17 12.7 17 13.5 16.3 15 15.5 15M19.5 12C18.7 12 18 11.3 18 10.5S18.7 9 19.5 9 21 9.7 21 10.5 20.3 12 19.5 12Z</Geometry>
 
             <!-- Slider Style -->
             <Style x:Key="Slider" TargetType="Slider">
@@ -87,7 +90,22 @@
                     <Setter.Value>
                         <ControlTemplate TargetType="Window">
                             <Grid x:Name="mainddd" MouseDown="BorderMouseDown">
-                                <Border x:Name="backg" BorderThickness="1" BorderBrush="{StaticResource DividorColor}" Background="{StaticResource BackColor}" CornerRadius="12"/>
+                                <Border x:Name="backg" BorderThickness="1" BorderBrush="#1A2540"
+                                        CornerRadius="14">
+                                    <Border.Background>
+                                        <SolidColorBrush Color="#080C14" Opacity="0.97"/>
+                                    </Border.Background>
+                                </Border>
+                                <!-- Subtle top accent line -->
+                                <Border VerticalAlignment="Top" Height="2" CornerRadius="14,14,0,0" Margin="1,1,1,0">
+                                    <Border.Background>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                            <GradientStop Color="Transparent" Offset="0"/>
+                                            <GradientStop Color="#00D4FF" Offset="0.5"/>
+                                            <GradientStop Color="Transparent" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Border.Background>
+                                </Border>
                                 <ContentPresenter/>
                             </Grid>
                         </ControlTemplate>

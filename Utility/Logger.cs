@@ -1,5 +1,5 @@
-﻿using bluestacks.Controls;
-using bluestacks.Database;
+﻿using InfinLimit.Controls;
+using InfinLimit.Database;
 
 using System;
 using System.Collections.Generic;
@@ -11,7 +11,7 @@ using System.Windows.Forms;
 
 using static System.Net.Mime.MediaTypeNames;
 
-namespace bluestacks
+namespace InfinLimit
 {
     public static class Logger
     {
@@ -23,7 +23,7 @@ namespace bluestacks
             // TODO: kinda bad
             Task.Run(async () =>
             {
-                using var db = new bluestacksDbContext();
+                using var db = new InfinLimitDbContext();
                 db.ChangeTracker.AutoDetectChangesEnabled = false;
                 db.Log.Add(new DbLog() { Text = text, CreatedAt = DateTime.Now, Type = level });
                 await db.SaveChangesAsync();

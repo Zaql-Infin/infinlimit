@@ -1,7 +1,7 @@
 ﻿using Hardcodet.Wpf.TaskbarNotification;
 
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
-using bluestacks.Interception;
+using InfinLimit.Interception;
 
 using System;
 using System.Collections.Generic;
@@ -14,19 +14,19 @@ using System.Windows.Input;
 using System.Windows.Media.Animation;
 using System.Windows.Media;
 using System.Windows.Threading;
-using bluestacks.Controls;
-using bluestacks.Windows.Controls;
+using InfinLimit.Controls;
+using InfinLimit.Windows.Controls;
 using System.ComponentModel;
-using bluestacks.Windows;
-using bluestacks.Interception.Modules;
-using bluestacks.Utility;
+using InfinLimit.Windows;
+using InfinLimit.Interception.Modules;
+using InfinLimit.Utility;
 using System.Windows.Media.Effects;
 using System.Diagnostics;
 using System.Windows.Forms;
 using Application = System.Windows.Application;
 using System.Windows.Controls;
 
-namespace bluestacks
+namespace InfinLimit
 {
     public partial class MainWindow : Window
     {
@@ -132,6 +132,37 @@ namespace bluestacks
         {
             Process.GetCurrentProcess().CloseMainWindow();
             Application.Current.Shutdown();
+        }
+
+        private bool _consolePageOpen = false;
+        private void ConsoleButtonClick(object sender, RoutedEventArgs e)
+        {
+            _consolePageOpen = !_consolePageOpen;
+            var time = TimeSpan.FromSeconds(0.25);
+
+            if (_consolePageOpen)
+            {
+                TopBlock.ElementFadeOut(time);
+                ModuleSettingsBorder.ElementFadeOut(time);
+                ModuleSelection.ElementFadeOut(time);
+                ConsolePage.Visibility = Visibility.Visible;
+                ConsolePage.ElementFadeIn(time);
+                ConsoleButton.stayActive = true;
+                ConsoleButton.RefreshAppearance(null, null);
+            }
+            else
+            {
+                ConsolePage.ElementFadeOut(time);
+                TopBlock.ElementFadeIn(time);
+                ModuleSettingsBorder.ElementFadeIn(time);
+                ConsoleButton.stayActive = false;
+                ConsoleButton.RefreshAppearance(null, null);
+                Dispatcher.BeginInvoke(async () =>
+                {
+                    await Task.Delay(time);
+                    ConsolePage.Visibility = Visibility.Collapsed;
+                });
+            }
         }
         private void TrayButtonClick(object sender, RoutedEventArgs e)
         {

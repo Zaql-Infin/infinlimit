@@ -1,10 +1,10 @@
-using System;
+﻿using System;
 using System.Globalization;
 using System.Windows.Data;
 using System.Windows.Markup;
 using System.Data;
 
-namespace bluestacks
+namespace InfinLimit
 {
     [ValueConversion(typeof(object), typeof(double))]
     public class MathConverter : MarkupExtension, IValueConverter, IMultiValueConverter

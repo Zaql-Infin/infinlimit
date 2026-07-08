@@ -1,4 +1,4 @@
-﻿using bluestacks.Utility;
+﻿using InfinLimit.Utility;
 
 using System;
 using System.Collections.Generic;
@@ -7,7 +7,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-namespace bluestacks.Models
+namespace InfinLimit.Models
 {
     public class ConfigModel
     {

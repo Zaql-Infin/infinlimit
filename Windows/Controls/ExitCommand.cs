@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 
-namespace bluestacks.Windows.Controls
+namespace InfinLimit.Windows.Controls
 {
     public class ExitCommand : ICommand
     {

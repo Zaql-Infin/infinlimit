@@ -1,4 +1,4 @@
-﻿using bluestacks.Models;
+﻿using InfinLimit.Models;
 
 using System;
 using System.Collections.Generic;
@@ -9,7 +9,7 @@ using System.Windows.Media;
 
 using WindivertDotnet;
 
-namespace bluestacks.Interception.Modules
+namespace InfinLimit.Interception.Modules
 {
     public class SoloModule : PacketModuleBase
     {

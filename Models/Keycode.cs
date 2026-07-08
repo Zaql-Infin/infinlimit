@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace bluestacks.Utility
+namespace InfinLimit.Utility
 {
     public enum Keycode : int
     {

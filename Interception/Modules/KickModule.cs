@@ -1,4 +1,4 @@
-﻿using bluestacks.Models;
+﻿using InfinLimit.Models;
 
 using System;
 using System.Collections.Generic;
@@ -7,7 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Media;
 
-namespace bluestacks.Interception.Modules
+namespace InfinLimit.Interception.Modules
 {
     public class KickModule : PacketModuleBase
     {

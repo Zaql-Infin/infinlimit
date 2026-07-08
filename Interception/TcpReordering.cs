@@ -1,12 +1,12 @@
-﻿using bluestacks.Interception.Modules;
-using bluestacks.Models;
+﻿using InfinLimit.Interception.Modules;
+using InfinLimit.Models;
 
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace bluestacks.Interception
+namespace InfinLimit.Interception
 {
     public class TcpCache
     {

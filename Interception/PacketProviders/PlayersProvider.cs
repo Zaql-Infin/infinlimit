@@ -1,4 +1,4 @@
-﻿using bluestacks.Models;
+﻿using InfinLimit.Models;
 
 using System;
 using System.Collections.Generic;
@@ -10,7 +10,7 @@ using System.Windows.Forms;
 
 using WindivertDotnet;
 
-namespace bluestacks.Interception.PacketProviders
+namespace InfinLimit.Interception.PacketProviders
 {
     public class PlayersProvider : PacketProviderBase
     {

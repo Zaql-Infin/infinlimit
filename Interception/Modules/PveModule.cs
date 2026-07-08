@@ -1,9 +1,9 @@
 ﻿using DotNetBungieAPI.Models.Destiny.Components;
 
-using bluestacks.Interception.PacketProviders;
-using bluestacks.Models;
-using bluestacks.Utility;
-using bluestacks.Windows;
+using InfinLimit.Interception.PacketProviders;
+using InfinLimit.Models;
+using InfinLimit.Utility;
+using InfinLimit.Windows;
 
 using System;
 using System.Collections.Generic;
@@ -16,7 +16,7 @@ using System.Windows.Media;
 
 using WindivertDotnet;
 
-namespace bluestacks.Interception.Modules
+namespace InfinLimit.Interception.Modules
 {
     public class PveModule : PacketModuleBase
     {

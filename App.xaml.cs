@@ -19,7 +19,7 @@ using WpfSnowfall;
 
 using Rectangle = System.Drawing.Rectangle;
 
-namespace bluestacks
+namespace InfinLimit
 
 
 {
@@ -29,9 +29,12 @@ namespace bluestacks
             protected override void OnStartup(StartupEventArgs e)
             {
                 base.OnStartup(e);
+            }
 
-                // Set up global XAML exception catching
-                GlobalXamlCatcher.Setup();
+            private void Application_Startup(object sender, StartupEventArgs e)
+            {
+                var splash = new StartupProgressBar();
+                splash.Show();
             }
             #region winBlur
 
@@ -122,21 +125,20 @@ namespace bluestacks
         }
         #endregion
 
-        public static string ExeDirectory => getExePath();
+        public static string ExeDirectory => getDataPath();
+        public static string ExePath => Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName);
 
         static string dir;
-        static string getExePath()
+        static string getDataPath()
         {
             if (dir is not null) return dir;
 
-            var currentDirectory = Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location);
-            if (currentDirectory != null)
-            {
-                Directory.SetCurrentDirectory(currentDirectory);
-                return dir = currentDirectory;
-            }
-
-            return dir = Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName);
+            var appData = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "InfinLimit"
+            );
+            Directory.CreateDirectory(appData);
+            return dir = appData;
         }
 
 

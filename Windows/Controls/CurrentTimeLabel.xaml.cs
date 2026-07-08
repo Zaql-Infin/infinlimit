@@ -14,7 +14,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 
-namespace bluestacks.Controls
+namespace InfinLimit.Controls
 {
     public partial class CurrentTimeLabel : UserControl
     {

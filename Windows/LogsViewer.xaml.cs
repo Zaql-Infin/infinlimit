@@ -1,7 +1,7 @@
-﻿using bluestacks.Controls;
-using bluestacks.Database;
-using bluestacks.Interception.Modules;
-using bluestacks.Utility;
+﻿using InfinLimit.Controls;
+using InfinLimit.Database;
+using InfinLimit.Interception.Modules;
+using InfinLimit.Utility;
 
 using System;
 using System.Collections.Generic;
@@ -14,7 +14,7 @@ using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
 
-namespace bluestacks.Windows
+namespace InfinLimit.Windows
 {
     public partial class LogsViewer : Window
     {
@@ -108,7 +108,7 @@ namespace bluestacks.Windows
 
             void loadPart(int iteration = 1)
             {
-                using var db = new bluestacksDbContext();
+                using var db = new InfinLimitDbContext();
                 var result = new List<LogObject>();
                 var partialFinish = start + timeDelta * iteration;
                 var partialStart = start + timeDelta * (iteration - 1);
@@ -224,7 +224,7 @@ namespace bluestacks.Windows
 
         private void LogCheckboxChecked(object sender, RoutedEventArgs e)
         {
-            var check = sender as bluestacks.Controls.FilterCheckbox;
+            var check = sender as InfinLimit.Controls.FilterCheckbox;
             var type = (LogLevel)Enum.Parse(typeof(LogLevel), check.Name);
             if (check.Checked)
             {

@@ -2,8 +2,8 @@
 using Microsoft.EntityFrameworkCore.Metadata.Conventions;
 using Microsoft.VisualBasic.ApplicationServices;
 
-using bluestacks.Database;
-using bluestacks.Utility;
+using InfinLimit.Database;
+using InfinLimit.Utility;
 
 using System;
 using System.ComponentModel;
@@ -31,7 +31,7 @@ using static System.Windows.Forms.AxHost;
 
 using Application = System.Windows.Application;
 
-namespace bluestacks
+namespace InfinLimit
 {
     public partial class StartupProgressBar : Window
     {
@@ -161,7 +161,7 @@ namespace bluestacks
 
                     Logger.Info("Starting database cleanup");
                     Instance.Dispatcher.Invoke(() => TaskDescription.Content = "Cleaning up temp files");
-                    using var db = new bluestacksDbContext();
+                    using var db = new InfinLimitDbContext();
                     var date = DateTime.Now - TimeSpan.FromHours(24);
                     Logger.Info($"Deleting packets older than {date}");
                     db.Packets.Where(x => x.CreatedAt < date).ExecuteDelete();

@@ -1,6 +1,6 @@
-﻿using bluestacks.Interception.Modules;
-using bluestacks.Models;
-using bluestacks.Utility;
+﻿using InfinLimit.Interception.Modules;
+using InfinLimit.Models;
+using InfinLimit.Utility;
 
 using System;
 using System.Collections.Generic;
@@ -15,7 +15,7 @@ using System.Windows.Navigation;
 
 using WindivertDotnet;
 
-namespace bluestacks.Interception.PacketProviders
+namespace InfinLimit.Interception.PacketProviders
 {
     public class XboxProvider : PacketProviderBase
     {

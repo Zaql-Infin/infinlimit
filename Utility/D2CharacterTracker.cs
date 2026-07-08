@@ -16,10 +16,10 @@ using DotNetBungieAPI.Models.Destiny.HistoricalStats;
 using Microsoft.VisualBasic.ApplicationServices;
 using System.Xml.Linq;
 using System.Text.RegularExpressions;
-using bluestacks.Interception.PacketProviders;
+using InfinLimit.Interception.PacketProviders;
 using System.Runtime.InteropServices;
 
-namespace bluestacks.Utility
+namespace InfinLimit.Utility
 {
     public static class D2CharacterTracker
     {

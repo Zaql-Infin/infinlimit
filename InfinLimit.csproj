@@ -1,19 +1,27 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net6.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <UseWPF>true</UseWPF>
-    <Authors></Authors>
+    <AssemblyName>InfinLimit</AssemblyName>
+    <RootNamespace>InfinLimit</RootNamespace>
+    <StartupObject>InfinLimit.Program</StartupObject>
+    <Authors>InfinLimit</Authors>
+    <Company>InfinLimit</Company>
+    <Product>InfinLimit</Product>
+    <Version>2.0.0</Version>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Windows\Assets\appLogo.ico</ApplicationIcon>
     <DebugType>none</DebugType>
-    <Version />
-    <PackageId></PackageId>
-    <Company />
-    <Product />
+    <!-- Single-file self-contained publish settings -->
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
   </PropertyGroup>
 
   <ItemGroup>
@@ -49,6 +57,7 @@
     <PackageReference Include="SharpCompress" Version="0.36.0" />
     <PackageReference Include="System.Management" Version="7.0.0" />
     <PackageReference Include="System.ServiceProcess.ServiceController" Version="8.0.0" />
+    <PackageReference Include="Velopack" Version="1.2.0" />
     <PackageReference Include="WindivertDotnet" Version="1.1.2" />
   </ItemGroup>
 

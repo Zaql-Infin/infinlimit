@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 using WindivertDotnet;
 
-namespace bluestacks.Interception.PacketProviders
+namespace InfinLimit.Interception.PacketProviders
 {
     public class _7500_Provider : PacketProviderBase
     {

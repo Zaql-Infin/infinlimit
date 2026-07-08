@@ -1,10 +1,11 @@
 ﻿<Window
-    x:Class="bluestacks.MainWindow"
+    x:Class="InfinLimit.MainWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:controls="clr-namespace:bluestacks.Controls"
+    xmlns:controls="clr-namespace:InfinLimit.Controls"
+    xmlns:wincontrols="clr-namespace:InfinLimit.Windows.Controls"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:local="clr-namespace:bluestacks"
+    xmlns:local="clr-namespace:InfinLimit"
     xmlns:sys="clr-namespace:System;assembly=mscorlib"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:tb="http://www.hardcodet.net/taskbar"
@@ -105,8 +106,10 @@
                                                   PathData="{StaticResource LogIcon}"/>
                         <controls:WindowControlButton Click="ServiceWindowButtonClick"
                                                   PathData="{StaticResource SettingsIcon}"/>
-                        <controls:WindowControlButton Click="AhkClick" 
+                        <controls:WindowControlButton Click="AhkClick"
                                                   PathData="{StaticResource AhkIcon}"/>
+                        <controls:WindowControlButton x:Name="ConsoleButton" Click="ConsoleButtonClick"
+                                                  PathData="{StaticResource ConsoleIcon}"/>
                         <controls:WindowControlButton Click="SoundButtonClick"
                                                   PathData="{StaticResource Speaker}" />
 
@@ -577,8 +580,17 @@
                 </Border>
 
 
+                <!--  CONSOLE LIMITER PAGE  -->
+                <Border x:Name="ConsolePage"
+                        Visibility="Collapsed"
+                        VerticalAlignment="Stretch" HorizontalAlignment="Stretch"
+                        Background="#080C14" CornerRadius="12"
+                        Margin="20,0,20,20" Padding="16">
+                    <wincontrols:ConsoleLimiterPanel x:Name="ConsolePanelControl"/>
+                </Border>
+
                 <!--  MODULE SELECTION PAGE  -->
-        
+
                 <Grid x:Name="ModuleSelection"
                 VerticalAlignment="Top" HorizontalAlignment="Center"
                 MinWidth="232"

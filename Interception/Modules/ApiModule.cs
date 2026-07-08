@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore.ValueGeneration.Internal;
 
-using bluestacks.Interception.PacketProviders;
-using bluestacks.Models;
+using InfinLimit.Interception.PacketProviders;
+using InfinLimit.Models;
 
 using System;
 using System.Collections.Generic;
@@ -16,7 +16,7 @@ using System.Windows.Documents;
 using System.Windows.Forms;
 using System.Windows.Media;
 
-namespace bluestacks.Interception.Modules
+namespace InfinLimit.Interception.Modules
 {
     public class ApiModule : PacketModuleBase
     {

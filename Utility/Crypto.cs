@@ -7,7 +7,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace bluestacks.Utility
+namespace InfinLimit.Utility
 {
     public class Crypto
     {

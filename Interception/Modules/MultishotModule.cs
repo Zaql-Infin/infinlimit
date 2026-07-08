@@ -1,8 +1,8 @@
 ﻿using RateLimiter;
 
-using bluestacks.Models;
-using bluestacks.Utility;
-using bluestacks.Windows;
+using InfinLimit.Models;
+using InfinLimit.Utility;
+using InfinLimit.Windows;
 
 using System;
 using System.Collections.Generic;
@@ -14,7 +14,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows.Media;
 
-namespace bluestacks.Interception.Modules 
+namespace InfinLimit.Interception.Modules 
 {
     public class MultishotModule : PacketModuleBase
     {

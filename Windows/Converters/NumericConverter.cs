@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Data;
 
-namespace bluestacks.Windows.Converters
+namespace InfinLimit.Windows.Converters
 {
     public class NumericConverter : IValueConverter
     {

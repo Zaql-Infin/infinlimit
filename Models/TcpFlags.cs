@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace bluestacks.Models
+namespace InfinLimit.Models
 {
     [Flags]
     public enum TcpFlags

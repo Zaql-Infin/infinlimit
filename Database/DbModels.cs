@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace bluestacks.Database
+namespace InfinLimit.Database
 {
     public class DbPacket
     {

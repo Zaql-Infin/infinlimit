@@ -1,5 +1,5 @@
-﻿using bluestacks.Interception.Modules;
-using bluestacks.Interception.PacketProviders;
+﻿using InfinLimit.Interception.Modules;
+using InfinLimit.Interception.PacketProviders;
 
 using System;
 using System.Collections.Generic;
@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace bluestacks.Interception
+namespace InfinLimit.Interception
 {
     public static class InterceptionManager
     {

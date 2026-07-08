@@ -1,9 +1,9 @@
-using System;
+﻿using System;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
 
-namespace bluestacks.Utility
+namespace InfinLimit.Utility
 {
     public static class InputSimulator
     {

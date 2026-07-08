@@ -1,5 +1,5 @@
-﻿using bluestacks.Database;
-using bluestacks.Models;
+﻿using InfinLimit.Database;
+using InfinLimit.Models;
 
 using System;
 using System.Collections.Generic;
@@ -19,7 +19,7 @@ using System.Windows.Media.Animation;
 
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.TaskbarClock;
 
-namespace bluestacks
+namespace InfinLimit
 {
     public static class ExtensionMethods
     {

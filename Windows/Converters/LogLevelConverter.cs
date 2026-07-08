@@ -1,4 +1,4 @@
-﻿using bluestacks.Database;
+﻿using InfinLimit.Database;
 
 using System;
 using System.Collections.Generic;
@@ -8,7 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Data;
 
-namespace bluestacks.Windows.Converters
+namespace InfinLimit.Windows.Converters
 {
     public class LogLevelConverter : IValueConverter
     {

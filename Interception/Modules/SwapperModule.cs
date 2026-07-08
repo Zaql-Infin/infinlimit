@@ -1,4 +1,4 @@
-using bluestacks.Utility;
+﻿using InfinLimit.Utility;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Windows.Media;
 
-namespace bluestacks.Interception.Modules
+namespace InfinLimit.Interception.Modules
 {
     public class SwapperModule : PacketModuleBase
     {

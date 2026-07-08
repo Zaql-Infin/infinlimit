@@ -8,16 +8,16 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace bluestacks.Database
+namespace InfinLimit.Database
 {
-    public class bluestacksDbContext : DbContext
+    public class InfinLimitDbContext : DbContext
     {
         private const string _connectionString = "Data Source=data.db";
 
         public DbSet<DbPacket> Packets { get; set; }
         public DbSet<DbLog> Log { get; set; }
 
-        public bluestacksDbContext()
+        public InfinLimitDbContext()
         {
             Database.EnsureCreated();
         }

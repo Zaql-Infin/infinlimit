@@ -1,8 +1,8 @@
-﻿using bluestacks.Controls;
-using bluestacks.Interception;
-using bluestacks.Interception.Modules;
-using bluestacks.Interception.PacketProviders;
-using bluestacks.Utility;
+﻿using InfinLimit.Controls;
+using InfinLimit.Interception;
+using InfinLimit.Interception.Modules;
+using InfinLimit.Interception.PacketProviders;
+using InfinLimit.Utility;
 
 using System;
 using System.Collections.Generic;
@@ -28,7 +28,7 @@ using static System.Net.Mime.MediaTypeNames;
 
 using Path = System.Windows.Shapes.Path;
 
-namespace bluestacks.Windows
+namespace InfinLimit.Windows
 {
     public partial class OverlayWindow : Window
     {

@@ -1,7 +1,6 @@
-﻿using SharpCompress.Archives;
+using SharpCompress.Archives;
 using SharpCompress.Archives.Zip;
 using SharpCompress.Readers;
-using SharpCompress.Readers.Zip;
 
 using System;
 using System.Diagnostics;
@@ -9,97 +8,141 @@ using System.IO;
 using System.IO.Compression;
 using System.Net;
 using System.Net.Http;
-using System.Reflection;
 using System.Security.Cryptography;
+using System.Text.Json;
 using System.Threading.Tasks;
-using System.Windows.Input;
+using System.Windows;
 
 using ZipArchive = SharpCompress.Archives.Zip.ZipArchive;
 
-namespace bluestacks.Utility
+namespace InfinLimit.Utility
 {
     public static class Updater
     {
-        public const int Version = 35;
-        public const string VersionString = "1.13.10";
+        public const int Version = 1;
+        public const string VersionString = "2.0.0";
+
+        // TODO: Set this to your manifest URL when you're ready
         private const string ManifestUrl = "";
-        private static Manifest manifest;
+
+        private static Manifest _manifest;
+        private static readonly HttpClient _http = new();
+
+        public static async Task<bool> IsLatestAsync()
+        {
+            if (string.IsNullOrEmpty(ManifestUrl))
+                return true;
+
+            try
+            {
+                var json = await _http.GetStringAsync(ManifestUrl);
+                if (json.Length < 5) return true;
+                _manifest = JsonSerializer.Deserialize<Manifest>(json);
+                return _manifest == null || _manifest.Version <= Version;
+            }
+            catch (Exception e)
+            {
+                ExtraLogger.Error(e);
+                return true;
+            }
+        }
 
         public static bool IsLatest()
         {
-            if (manifest == null)
-            {
-                try
-                {
-                    using var wc = new WebClient();
-                    var response = wc.DownloadString(ManifestUrl);
-
-                    if (response.Length < 10)
-                        return true;
-
-                    var crypt = new Crypto();
-                    manifest = crypt.Decrypt(response.Trim().ToBytes()).Deserialize<Manifest>();
-                }
-                catch (Exception e)
-                {
-                    ExtraLogger.Error(e);
-                    return true;
-                }
-            }
-
-            return manifest.Version <= Version;
-        }
-
-        public static bool IsProtected()
-        {
-            IsLatest();
-            if (manifest is null)
+            if (string.IsNullOrEmpty(ManifestUrl))
                 return true;
-            return MD5.HashData(File.ReadAllBytes(Process.GetCurrentProcess().MainModule.FileName)).ToHexString() != manifest.MD5;
-        }
 
-        public static bool Update()
-        {
-            var name = "sw_update.zip";
-            using var wc = new WebClient();
-            wc.DownloadFile(manifest.DownloadUrl, name);
-
-            var dir = Path.Combine(App.ExeDirectory, "temp");
-            Directory.CreateDirectory(dir);
             try
             {
-                ZipFile.ExtractToDirectory(name, dir, true);
+                using var wc = new WebClient();
+                var json = wc.DownloadString(ManifestUrl);
+                if (json.Length < 5) return true;
+                _manifest = JsonSerializer.Deserialize<Manifest>(json);
+                return _manifest == null || _manifest.Version <= Version;
             }
-            catch (InvalidDataException)
+            catch (Exception e)
             {
-                using var fs = File.OpenRead(name);
-                using var zip = ZipArchive.Open(fs, new ReaderOptions() { Password = "1234" });
-                zip.WriteToDirectory(dir, new SharpCompress.Common.ExtractionOptions() { Overwrite = true, ExtractFullPath = true });
+                ExtraLogger.Error(e);
+                return true;
             }
-
-            RunPatcher("update");
-
-            return true;
         }
 
-        public static void RunPatcher(string args = null)
+        public static async Task<bool> UpdateAsync(IProgress<int> progress = null)
         {
-            ProcessStartInfo startInfo = new ProcessStartInfo
-            {
-                FileName = "patcher.exe",
-                WorkingDirectory = App.ExeDirectory,
-                UseShellExecute = false,
-                Arguments = args ?? string.Empty
-            };
+            if (_manifest == null) return false;
 
-            Process.Start(startInfo);
+            var tempZip = Path.Combine(Path.GetTempPath(), "infinlimit_update.zip");
+            var tempDir = Path.Combine(Path.GetTempPath(), "infinlimit_update");
+
+            try
+            {
+                using var wc = new WebClient();
+                if (progress != null)
+                    wc.DownloadProgressChanged += (s, e) => progress.Report(e.ProgressPercentage);
+
+                await wc.DownloadFileTaskAsync(_manifest.DownloadUrl, tempZip);
+                Directory.CreateDirectory(tempDir);
+
+                try
+                {
+                    ZipFile.ExtractToDirectory(tempZip, tempDir, true);
+                }
+                catch (InvalidDataException)
+                {
+                    using var fs = File.OpenRead(tempZip);
+                    using var zip = ZipArchive.Open(fs);
+                    zip.WriteToDirectory(tempDir, new SharpCompress.Common.ExtractionOptions()
+                    {
+                        Overwrite = true,
+                        ExtractFullPath = true
+                    });
+                }
+
+                LaunchPatcher(tempDir);
+                return true;
+            }
+            catch (Exception e)
+            {
+                ExtraLogger.Error(e);
+                return false;
+            }
+        }
+
+        // Legacy sync API kept for StartupProgressBar compatibility
+        public static bool Update() => UpdateAsync().GetAwaiter().GetResult();
+        public static bool IsProtected() => false;
+        public static void RunPatcher(string args = null) { }
+
+        private static void LaunchPatcher(string updateDir)
+        {
+            var exePath = Process.GetCurrentProcess().MainModule.FileName;
+            var patcherScript = Path.Combine(Path.GetTempPath(), "infinlimit_patch.bat");
+
+            File.WriteAllText(patcherScript,
+                $"@echo off\r\n" +
+                $"timeout /t 2 /nobreak >nul\r\n" +
+                $"xcopy /s /y \"{updateDir}\\*\" \"{Path.GetDirectoryName(exePath)}\\\"\r\n" +
+                $"start \"\" \"{exePath}\"\r\n" +
+                $"del \"{patcherScript}\"\r\n"
+            );
+
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = patcherScript,
+                UseShellExecute = true,
+                WindowStyle = ProcessWindowStyle.Hidden
+            });
+
+            Application.Current.Dispatcher.Invoke(() => Application.Current.Shutdown());
         }
     }
 
     public class Manifest
     {
         public int Version { get; set; }
+        public string VersionString { get; set; }
         public string DownloadUrl { get; set; }
         public string MD5 { get; set; }
+        public string ChangeLog { get; set; }
     }
 }

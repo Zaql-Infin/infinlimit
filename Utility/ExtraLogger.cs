@@ -10,7 +10,7 @@ using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace bluestacks
+namespace InfinLimit
 {
     public static class ExtraLogger
     {

@@ -1,4 +1,4 @@
-﻿using bluestacks.Interception;
+﻿using InfinLimit.Interception;
 
 using System;
 using System.Collections.Generic;
@@ -9,7 +9,7 @@ using System.Windows.Documents;
 using System.Windows.Media;
 using System.Windows.Threading;
 
-namespace bluestacks.Controls
+namespace InfinLimit.Controls
 {
     public partial class ConnectionInfoPanel : UserControl
     {

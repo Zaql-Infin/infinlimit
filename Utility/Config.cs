@@ -1,6 +1,6 @@
-﻿using bluestacks.Models;
-using bluestacks.Utility;
-using bluestacks.Interception;
+﻿using InfinLimit.Models;
+using InfinLimit.Utility;
+using InfinLimit.Interception;
 
 using System;
 using System.Collections.Generic;
@@ -10,16 +10,16 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
-using bluestacks.Interception.Modules;
+using InfinLimit.Interception.Modules;
 using System.Xml.Linq;
 using System.Reflection;
 using System.Diagnostics;
 
-namespace bluestacks
+namespace InfinLimit
 {
     public static class Config
     {
-        static string ConfigPath = "bluestacks.cfg";
+        static string ConfigPath = "infinlimit.cfg";
         public static ConfigModel Instance { get; set; }
 
         static Config()

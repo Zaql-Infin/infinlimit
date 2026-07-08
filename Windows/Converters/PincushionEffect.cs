@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media.Effects;
 
-namespace bluestacks.Windows
+namespace InfinLimit.Windows
 {
     public class PincushionEffect : ShaderEffect
     {

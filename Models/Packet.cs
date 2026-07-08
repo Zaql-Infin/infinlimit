@@ -1,4 +1,4 @@
-﻿using bluestacks.Interception;
+﻿using InfinLimit.Interception;
 
 using System;
 using System.Collections.Generic;
@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 using WindivertDotnet;
 
-namespace bluestacks.Models
+namespace InfinLimit.Models
 {
     public class Packet : IDisposable
     {

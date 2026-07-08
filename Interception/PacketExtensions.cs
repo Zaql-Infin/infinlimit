@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore.Diagnostics;
 
-using bluestacks.Database;
-using bluestacks.Models;
+using InfinLimit.Database;
+using InfinLimit.Models;
 
 using System;
 using System.Collections.Generic;
@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 
 using WindivertDotnet;
 
-namespace bluestacks.Interception.Modules
+namespace InfinLimit.Interception.Modules
 {
     public static class PacketExtensions
     {

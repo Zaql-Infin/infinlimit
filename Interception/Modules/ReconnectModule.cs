@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 
-using bluestacks.Database;
-using bluestacks.Models;
+using InfinLimit.Database;
+using InfinLimit.Models;
 
 using System;
 using System.Collections;
@@ -17,7 +17,7 @@ using System.Windows.Media;
 
 using WindivertDotnet;
 
-namespace bluestacks.Interception.Modules
+namespace InfinLimit.Interception.Modules
 {
     public class ReconnectModule : PacketModuleBase
     {

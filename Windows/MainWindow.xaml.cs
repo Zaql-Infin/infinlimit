@@ -3,13 +3,13 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.VisualBasic.Logging;
 
-using bluestacks.Controls;
-using bluestacks.Database;
-using bluestacks.Interception;
-using bluestacks.Interception.Modules;
-using bluestacks.Models;
-using bluestacks.Utility;
-using bluestacks.Windows;
+using InfinLimit.Controls;
+using InfinLimit.Database;
+using InfinLimit.Interception;
+using InfinLimit.Interception.Modules;
+using InfinLimit.Models;
+using InfinLimit.Utility;
+using InfinLimit.Windows;
 
 using System;
 using System.Collections.Generic;
@@ -35,10 +35,11 @@ using System.Windows.Shapes;
 using System.Windows.Threading;
 
 using WindivertDotnet;
+using InfinLimit.Utility;
 
 using Application = System.Windows.Application;
 
-namespace bluestacks
+namespace InfinLimit
 {
     public partial class MainWindow : Window, INotifyPropertyChanged
     {
@@ -89,6 +90,7 @@ namespace bluestacks
 
 
         public OverlayWindow overlay { get; set; }
+        private ConsoleModule _consoleModule;
 
         public void KeyLogger(LinkedList<Keycode> keycodes) => Logger.Key(String.Join(" + ", keycodes.Select(x => x.ToString().Replace("VK_", ""))));
 
@@ -134,6 +136,13 @@ namespace bluestacks
             KeyListener.KeysPressed += AltTabTracker;
             InterceptionManager.Init();
             AhkManager.Init();
+
+            // Wire up console module
+            _consoleModule = new ConsoleModule();
+            ConsolePanelControl.SetModule(_consoleModule);
+
+            // Auto-update check via Velopack
+            _ = Task.Run(AppUpdater.CheckForUpdatesAsync);
 
             Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () =>
             {
@@ -287,7 +296,7 @@ namespace bluestacks
             {
                 for (int i = 1; i <= 12; i++)
                 {
-                    var cb = FindName($"Swapper_Loadout{i}") as bluestacks.Controls.Checkbox;
+                    var cb = FindName($"Swapper_Loadout{i}") as InfinLimit.Controls.Checkbox;
                     if (cb != null)
                     {
                         cb.Click += Swapper_Loadout_CheckedChanged;
@@ -547,7 +556,7 @@ namespace bluestacks
                 
                 for (int i = 1; i <= 12; i++)
                 {
-                    var cb = FindName($"Swapper_Loadout{i}") as bluestacks.Controls.Checkbox;
+                    var cb = FindName($"Swapper_Loadout{i}") as InfinLimit.Controls.Checkbox;
                     if (cb != null)
                     {
                         bool shouldBeSelected = selected.Contains(i);
@@ -698,7 +707,7 @@ namespace bluestacks
         // Handler for checkbox changes
         private void Swapper_Loadout_CheckedChanged(object sender, RoutedEventArgs e)
         {
-            var cb = sender as bluestacks.Controls.Checkbox;
+            var cb = sender as InfinLimit.Controls.Checkbox;
             if (cb != null)
             {
                 cb.Background = cb.Checked
@@ -711,7 +720,7 @@ namespace bluestacks
             {
                 for (int i = 1; i <= 12; i++)
                 {
-                    var checkbox = FindName($"Swapper_Loadout{i}") as bluestacks.Controls.Checkbox;
+                    var checkbox = FindName($"Swapper_Loadout{i}") as InfinLimit.Controls.Checkbox;
                     bool isSelected = checkbox != null && checkbox.Checked;
                     swapper.SetLoadoutSelection(i, isSelected);
                 }

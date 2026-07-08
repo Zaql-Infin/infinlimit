@@ -18,7 +18,7 @@ using System.Windows.Threading;
 
 using static System.Runtime.CompilerServices.RuntimeHelpers;
 
-namespace bluestacks.Utility
+namespace InfinLimit.Utility
 {
     public class KeyListener : IDisposable
     {

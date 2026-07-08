@@ -1,5 +1,5 @@
-﻿ using bluestacks.Controls;
-using bluestacks.Utility;
+﻿ using InfinLimit.Controls;
+using InfinLimit.Utility;
 
 using System;
 using System.Collections.Generic;
@@ -21,7 +21,7 @@ using System.Windows.Shapes;
 
 using Application = System.Windows.Application;
 
-namespace bluestacks
+namespace InfinLimit
 {
     public partial class ServiceWindow : Window
     {

@@ -1,8 +1,8 @@
 ﻿using Microsoft.Extensions.Logging.Abstractions;
 
-using bluestacks.Database;
-using bluestacks.Interception.Modules;
-using bluestacks.Models;
+using InfinLimit.Database;
+using InfinLimit.Interception.Modules;
+using InfinLimit.Models;
 
 using System;
 using System.Collections.Concurrent;
@@ -18,7 +18,7 @@ using WindivertDotnet;
 
 using static System.Net.Mime.MediaTypeNames;
 
-namespace bluestacks.Interception
+namespace InfinLimit.Interception
 {
     public abstract class PacketProviderBase : IDisposable
     {
@@ -314,7 +314,7 @@ namespace bluestacks.Interception
                     Flags = x.BuildTcpFlagsString(),
                 });
 
-                using var db = new bluestacksDbContext();
+                using var db = new InfinLimitDbContext();
                 db.ChangeTracker.AutoDetectChangesEnabled = false;
                 db.Packets.AddRange(temp);
                 await db.SaveChangesAsync();

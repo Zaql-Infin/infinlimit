@@ -1,0 +1,74 @@
+name: Build and release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to build (e.g. 1.0.1)"
+        required: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "6.0.x"
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Cache dotnet tools
+        id: tools-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.dotnet/tools
+          key: dotnet-tools-vpk1.2.0
+
+      - name: Install vpk
+        if: steps.tools-cache.outputs.cache-hit != 'true'
+        run: dotnet tool install -g vpk --version 1.2.0
+
+      - name: Add tools to PATH
+        shell: pwsh
+        run: echo "$HOME/.dotnet/tools" >> $env:GITHUB_PATH
+
+      - name: Fetch previous release for delta generation
+        id: prev
+        shell: pwsh
+        run: |
+          $releases = gh release list --repo "${{ github.repository_owner }}/infinlimit-releases" `
+            --json tagName,createdAt --jq 'sort_by(.createdAt) | reverse | .[0].tagName' 2>$null
+          if ($releases) {
+            gh release download $releases --repo "${{ github.repository_owner }}/infinlimit-releases" `
+              --pattern "*-full.nupkg" --dir prev_release
+            $nupkg = Get-ChildItem prev_release -Filter "*-full.nupkg" | Select-Object -First 1
+            if ($nupkg) { "path=$($nupkg.FullName)" >> $env:GITHUB_OUTPUT }
+          }
+        env:
+          GH_TOKEN: ${{ secrets.RELEASES_PAT }}
+
+      - name: Build and package
+        shell: pwsh
+        run: |
+          $prev = "${{ steps.prev.outputs.path }}"
+          if ($prev) {
+            .\build-release.ps1 -Version "${{ inputs.version }}" -PreviousNupkgPath $prev
+          } else {
+            .\build-release.ps1 -Version "${{ inputs.version }}"
+          }
+
+      - name: Publish release to releases repo
+        shell: pwsh
+        run: |
+          vpk upload github `
+            --repoUrl "https://github.com/${{ github.repository_owner }}/infinlimit-releases" `
+            --token "${{ secrets.RELEASES_PAT }}" `
+            --publish true `
+            --tag "v${{ inputs.version }}" `
+            -o Releases

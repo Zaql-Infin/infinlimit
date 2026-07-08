@@ -1,7 +1,7 @@
 ﻿using OxyPlot.Wpf;
 
-using bluestacks.Interception;
-using bluestacks.Interception.Modules;
+using InfinLimit.Interception;
+using InfinLimit.Interception.Modules;
 
 using System;
 using System.Collections.Generic;
@@ -22,7 +22,7 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Windows.Threading;
 
-namespace bluestacks.Controls
+namespace InfinLimit.Controls
 {
     public partial class EnabledModuleTimer : UserControl
     {

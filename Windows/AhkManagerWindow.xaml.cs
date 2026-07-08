@@ -18,7 +18,7 @@ using System.Runtime.InteropServices;
 using System.Diagnostics;
 using System.Reflection;
 
-namespace bluestacks
+namespace InfinLimit
 {
     // TODO: OTHER WINDOWS WITH SAME NAME ARE BEING DETECTED AS AHK SCRIPTS 
     public static class AhkManager
