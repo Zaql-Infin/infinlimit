@@ -1,4 +1,5 @@
 name: Build and release
+# InfinLimit CI
 
 on:
   workflow_dispatch:
