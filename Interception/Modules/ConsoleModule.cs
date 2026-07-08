@@ -12,19 +12,139 @@ using WindivertDotnet;
 
 namespace InfinLimit.Interception.Modules
 {
-    /// <summary>
-    /// Standalone bandwidth throttler for console devices on the LAN.
-    /// Uses token-bucket algorithm via WinDivert packet interception.
-    /// </summary>
     public class ConsoleModule
     {
         public static List<ConsoleDevice> Devices { get; } = new();
         public bool IsEnabled { get; private set; }
 
+        // Global toggle flags (toggled via keybinds)
+        public static bool DLEnabled = true;
+        public static bool ULEnabled = true;
+        public static bool DLSlowEnabled = false;
+        public static bool ULSlowEnabled = false;
+        public static bool AutoResync = false;
+        public static bool Buffering = false;
+
+        // Slow mode speed multiplier (10% of set rate)
+        public const float SlowMultiplier = 0.10f;
+
+        // Keybind lists — loaded/saved via Config
+        public static List<Keycode> EnableKeybind = new();
+        public static List<Keycode> DLKeybind = new();
+        public static List<Keycode> ULKeybind = new();
+        public static List<Keycode> DLSlowKeybind = new();
+        public static List<Keycode> ULSlowKeybind = new();
+        public static List<Keycode> AutoResyncKeybind = new();
+        public static List<Keycode> BufferingKeybind = new();
+
         private readonly ConcurrentDictionary<string, TokenBucket> _uploadBuckets = new();
         private readonly ConcurrentDictionary<string, TokenBucket> _downloadBuckets = new();
         private WinDivert? _divert;
         private CancellationTokenSource? _cts;
+
+        // Reference back to the panel for UI updates
+        public static Action? OnStateChanged;
+
+        public ConsoleModule()
+        {
+            var cfg = Config.GetNamed("ConsoleModule");
+
+            // Keybinds — "Keybind" suffix triggers correct JSON deserialization in GetSettings
+            EnableKeybind.AddRange(cfg.GetSettings<List<Keycode>>("EnableKeybind") ?? new());
+            DLKeybind.AddRange(cfg.GetSettings<List<Keycode>>("DLKeybind") ?? new());
+            ULKeybind.AddRange(cfg.GetSettings<List<Keycode>>("ULKeybind") ?? new());
+            DLSlowKeybind.AddRange(cfg.GetSettings<List<Keycode>>("DLSlowKeybind") ?? new());
+            ULSlowKeybind.AddRange(cfg.GetSettings<List<Keycode>>("ULSlowKeybind") ?? new());
+            AutoResyncKeybind.AddRange(cfg.GetSettings<List<Keycode>>("AutoResyncKeybind") ?? new());
+            BufferingKeybind.AddRange(cfg.GetSettings<List<Keycode>>("BufferingKeybind") ?? new());
+
+            // Bool flags — check key exists first to apply our own defaults
+            DLEnabled = cfg.Settings.ContainsKey("DLEnabled") ? cfg.GetSettings<bool>("DLEnabled") : true;
+            ULEnabled = cfg.Settings.ContainsKey("ULEnabled") ? cfg.GetSettings<bool>("ULEnabled") : true;
+            AutoResync = cfg.Settings.ContainsKey("AutoResync") ? cfg.GetSettings<bool>("AutoResync") : false;
+            Buffering = cfg.Settings.ContainsKey("Buffering") ? cfg.GetSettings<bool>("Buffering") : false;
+
+            KeyListener.KeysPressed += KeybindHandler;
+        }
+
+        private void KeybindHandler(LinkedList<Keycode> keys)
+        {
+            if (EnableKeybind.Count > 0 && MatchesKeybind(keys, EnableKeybind))
+            {
+                if (IsEnabled) Disable(); else Enable();
+                OnStateChanged?.Invoke();
+                Config.Save();
+                return;
+            }
+            if (DLKeybind.Count > 0 && MatchesKeybind(keys, DLKeybind))
+            {
+                DLEnabled = !DLEnabled;
+                if (DLEnabled) DLSlowEnabled = false;
+                SaveFlags(); OnStateChanged?.Invoke(); return;
+            }
+            if (ULKeybind.Count > 0 && MatchesKeybind(keys, ULKeybind))
+            {
+                ULEnabled = !ULEnabled;
+                if (ULEnabled) ULSlowEnabled = false;
+                SaveFlags(); OnStateChanged?.Invoke(); return;
+            }
+            if (DLSlowKeybind.Count > 0 && MatchesKeybind(keys, DLSlowKeybind))
+            {
+                DLSlowEnabled = !DLSlowEnabled;
+                if (DLSlowEnabled) DLEnabled = false;
+                SaveFlags(); OnStateChanged?.Invoke(); return;
+            }
+            if (ULSlowKeybind.Count > 0 && MatchesKeybind(keys, ULSlowKeybind))
+            {
+                ULSlowEnabled = !ULSlowEnabled;
+                if (ULSlowEnabled) ULEnabled = false;
+                SaveFlags(); OnStateChanged?.Invoke(); return;
+            }
+            if (AutoResyncKeybind.Count > 0 && MatchesKeybind(keys, AutoResyncKeybind))
+            {
+                AutoResync = !AutoResync;
+                SaveFlags(); OnStateChanged?.Invoke(); return;
+            }
+            if (BufferingKeybind.Count > 0 && MatchesKeybind(keys, BufferingKeybind))
+            {
+                Buffering = !Buffering;
+                SaveFlags(); OnStateChanged?.Invoke(); return;
+            }
+        }
+
+        private static bool MatchesKeybind(LinkedList<Keycode> pressed, List<Keycode> bind)
+        {
+            if (pressed.Count < bind.Count) return false;
+            foreach (var k in bind)
+                if (!pressed.Contains(k)) return false;
+            return true;
+        }
+
+        public void UnhookKeybind() => KeyListener.KeysPressed -= KeybindHandler;
+        public void RehookKeybind() => KeyListener.KeysPressed += KeybindHandler;
+
+        public static void SaveFlags()
+        {
+            var cfg = Config.GetNamed("ConsoleModule");
+            cfg.Settings["DLEnabled"] = DLEnabled;
+            cfg.Settings["ULEnabled"] = ULEnabled;
+            cfg.Settings["AutoResync"] = AutoResync;
+            cfg.Settings["Buffering"] = Buffering;
+            Config.Save();
+        }
+
+        public static void SaveKeybinds()
+        {
+            var cfg = Config.GetNamed("ConsoleModule");
+            cfg.Settings["EnableKeybind"] = EnableKeybind;
+            cfg.Settings["DLKeybind"] = DLKeybind;
+            cfg.Settings["ULKeybind"] = ULKeybind;
+            cfg.Settings["DLSlowKeybind"] = DLSlowKeybind;
+            cfg.Settings["ULSlowKeybind"] = ULSlowKeybind;
+            cfg.Settings["AutoResyncKeybind"] = AutoResyncKeybind;
+            cfg.Settings["BufferingKeybind"] = BufferingKeybind;
+            Config.Save();
+        }
 
         public void Enable()
         {
@@ -69,21 +189,23 @@ namespace InfinLimit.Interception.Modules
                     {
                         if (!device.Enabled || device.IP == null) continue;
 
-                        // Traffic FROM the device = its upload
-                        if (srcIp == device.IP && device.UploadKbps > 0)
+                        // Traffic FROM device = upload
+                        if (srcIp == device.IP && (ULEnabled || ULSlowEnabled) && device.UploadKbps > 0)
                         {
-                            var bucket = _uploadBuckets.GetOrAdd(device.IP,
-                                _ => new TokenBucket(device.UploadKbps * 1000L / 8));
-                            bucket.Rate = device.UploadKbps * 1000L / 8;
+                            float mult = ULSlowEnabled ? SlowMultiplier : 1f;
+                            long rate = (long)(device.UploadKbps * 1000L / 8 * mult);
+                            var bucket = _uploadBuckets.GetOrAdd(device.IP, _ => new TokenBucket(rate));
+                            bucket.Rate = rate;
                             if (!bucket.Consume(packet.Length)) { dropped = true; break; }
                         }
 
-                        // Traffic TO the device = its download
-                        if (dstIp == device.IP && device.DownloadKbps > 0)
+                        // Traffic TO device = download
+                        if (dstIp == device.IP && (DLEnabled || DLSlowEnabled) && device.DownloadKbps > 0)
                         {
-                            var bucket = _downloadBuckets.GetOrAdd(device.IP,
-                                _ => new TokenBucket(device.DownloadKbps * 1000L / 8));
-                            bucket.Rate = device.DownloadKbps * 1000L / 8;
+                            float mult = DLSlowEnabled ? SlowMultiplier : 1f;
+                            long rate = (long)(device.DownloadKbps * 1000L / 8 * mult);
+                            var bucket = _downloadBuckets.GetOrAdd(device.IP, _ => new TokenBucket(rate));
+                            bucket.Rate = rate;
                             if (!bucket.Consume(packet.Length)) { dropped = true; break; }
                         }
                     }

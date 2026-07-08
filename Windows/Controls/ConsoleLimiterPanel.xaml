@@ -3,50 +3,47 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:controls="clr-namespace:InfinLimit.Controls"
              mc:Ignorable="d"
              Background="Transparent">
 
     <UserControl.Resources>
-        <!-- Device card style -->
-        <Style x:Key="DeviceCard" TargetType="Border">
-            <Setter Property="Background" Value="#0E1622"/>
-            <Setter Property="BorderBrush" Value="#1A2540"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="8"/>
-            <Setter Property="Padding" Value="12,10"/>
-            <Setter Property="Margin" Value="0,0,0,6"/>
-        </Style>
-
-        <Style x:Key="HeaderLabel" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#6B7FA3"/>
-            <Setter Property="FontFamily" Value="Bahnschrift Light"/>
-            <Setter Property="FontSize" Value="10"/>
-        </Style>
-
-        <Style x:Key="ValueLabel" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#E8F0FF"/>
+        <Style x:Key="RowLabel" TargetType="Label">
+            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
             <Setter Property="FontFamily" Value="Bahnschrift Light"/>
             <Setter Property="FontSize" Value="13"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Padding" Value="0,0,0,0"/>
+            <Setter Property="Height" Value="28"/>
+        </Style>
+
+        <Style x:Key="DeviceCard" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource LightBackColor}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource DividorColor}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="Margin" Value="0,0,0,5"/>
         </Style>
 
         <Style x:Key="SpeedBox" TargetType="TextBox">
-            <Setter Property="Background" Value="#080C14"/>
-            <Setter Property="Foreground" Value="#E8F0FF"/>
-            <Setter Property="BorderBrush" Value="#1A2540"/>
+            <Setter Property="Background" Value="{StaticResource BackColor}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource DividorColor}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="6,3"/>
             <Setter Property="FontFamily" Value="Bahnschrift Light"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="Width" Value="70"/>
             <Setter Property="TextAlignment" Value="Center"/>
-            <Setter Property="CaretBrush" Value="#00D4FF"/>
+            <Setter Property="CaretBrush" Value="{StaticResource AccentColor}"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="TextBox">
                         <Border Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="5">
+                                CornerRadius="4">
                             <ScrollViewer x:Name="PART_ContentHost" Padding="{TemplateBinding Padding}"/>
                         </Border>
                     </ControlTemplate>
@@ -55,9 +52,9 @@
         </Style>
 
         <Style x:Key="ActionButton" TargetType="Button">
-            <Setter Property="Background" Value="#0E1622"/>
-            <Setter Property="Foreground" Value="#00D4FF"/>
-            <Setter Property="BorderBrush" Value="#00D4FF"/>
+            <Setter Property="Background" Value="{StaticResource LightBackColor}"/>
+            <Setter Property="Foreground" Value="{StaticResource AccentColor}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource AccentColor}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="10,4"/>
             <Setter Property="FontFamily" Value="Bahnschrift Light"/>
@@ -69,16 +66,13 @@
                         <Border Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="5"
+                                CornerRadius="4"
                                 Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#0A1828"/>
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter Property="Background" Value="#001833"/>
+                                <Setter Property="Opacity" Value="0.8"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -87,34 +81,8 @@
         </Style>
 
         <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource ActionButton}">
-            <Setter Property="Foreground" Value="#FF6B6B"/>
-            <Setter Property="BorderBrush" Value="#FF6B6B"/>
-        </Style>
-
-        <Style x:Key="ToggleOnOff" TargetType="ToggleButton">
-            <Setter Property="Width" Value="36"/>
-            <Setter Property="Height" Value="20"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ToggleButton">
-                        <Grid>
-                            <Border x:Name="Track" CornerRadius="10" Background="#1A2540"/>
-                            <Ellipse x:Name="Thumb" Width="14" Height="14"
-                                     Fill="#6B7FA3" HorizontalAlignment="Left"
-                                     Margin="3,0,0,0"/>
-                        </Grid>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="Track" Property="Background" Value="#004466"/>
-                                <Setter TargetName="Thumb" Property="Fill" Value="#00D4FF"/>
-                                <Setter TargetName="Thumb" Property="HorizontalAlignment" Value="Right"/>
-                                <Setter TargetName="Thumb" Property="Margin" Value="0,0,3,0"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
+            <Setter Property="Foreground" Value="#E85D5D"/>
+            <Setter Property="BorderBrush" Value="#E85D5D"/>
         </Style>
     </UserControl.Resources>
 
@@ -122,20 +90,107 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="8"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- Header -->
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,12">
-            <Path Data="M21 6H3C1.9 6 1 6.9 1 8V16C1 17.1 1.9 18 3 18H21C22.1 18 23 17.1 23 16V8C23 6.9 22.1 6 21 6M11 13H8V16H6V13H3V11H6V8H8V11H11M15.5 15C14.7 15 14 14.3 14 13.5S14.7 12 15.5 12 17 12.7 17 13.5 16.3 15 15.5 15M19.5 12C18.7 12 18 11.3 18 10.5S18.7 9 19.5 9 21 9.7 21 10.5 20.3 12 19.5 12Z"
-                  Fill="#00D4FF" Stretch="Uniform" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
-            <TextBlock Text="CONSOLE  LIMITER" Foreground="#00D4FF"
-                       FontFamily="Bahnschrift Light" FontSize="13" VerticalAlignment="Center"/>
+        <!-- Header: Xbox / PlayStation label -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
+            <!-- Controller icon path (D2 gamepad) -->
+            <Path Data="M7 6H17C18.6 6 20 7 20.8 8.4L22 11V15C22 16.1 21.1 17 20 17H4C2.9 17 2 16.1 2 15V11L3.2 8.4C4 7 5.4 6 7 6ZM10 10H8V8H6V10H4V12H6V14H8V12H10V10ZM16 9C15.4 9 15 9.4 15 10S15.4 11 16 11 17 10.6 17 10 16.6 9 16 9ZM18 11C17.4 11 17 11.4 17 12S17.4 13 18 13 19 12.6 19 12 18.6 11 18 11Z"
+                  Fill="{StaticResource AccentColor}" Stretch="Uniform" Width="16" Height="16"
+                  Margin="0,0,8,0" VerticalAlignment="Center"/>
+            <TextBlock Foreground="{StaticResource AccentColor}"
+                       FontFamily="Bahnschrift Light" FontSize="13" VerticalAlignment="Center">
+                <Run Text="CONSOLE LIMITER"/>
+                <Run Text="  ·  " Foreground="{StaticResource TextSecondary}"/>
+                <Run Text="XBOX / PLAYSTATION" Foreground="{StaticResource TextSecondary}" FontSize="11"/>
+            </TextBlock>
         </StackPanel>
 
+        <!-- Keybind rows (PVE-style) -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="110"/>
+                <ColumnDefinition Width="28"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Enabled -->
+            <Label Grid.Row="0" Grid.Column="0" Content="Enabled" Style="{StaticResource RowLabel}"/>
+            <controls:Button Grid.Row="0" Grid.Column="1" x:Name="BindEnabled"
+                             Text="No keybind" Click="KeybindButtonClick" HorizontalAlignment="Right"/>
+            <controls:Checkbox Grid.Row="0" Grid.Column="2" x:Name="ChkEnabled"
+                               Width="22" Height="22" Margin="3,0,0,0"
+                               MouseDown="ChkEnabled_Click"/>
+
+            <!-- DL -->
+            <Label Grid.Row="1" Grid.Column="0" Content="DL" Style="{StaticResource RowLabel}"/>
+            <controls:Button Grid.Row="1" Grid.Column="1" x:Name="BindDL"
+                             Text="No keybind" Click="KeybindButtonClick" HorizontalAlignment="Right"/>
+            <controls:Checkbox Grid.Row="1" Grid.Column="2" x:Name="ChkDL"
+                               Width="22" Height="22" Margin="3,0,0,0"
+                               MouseDown="ChkDL_Click"/>
+
+            <!-- UL -->
+            <Label Grid.Row="2" Grid.Column="0" Content="UL" Style="{StaticResource RowLabel}"/>
+            <controls:Button Grid.Row="2" Grid.Column="1" x:Name="BindUL"
+                             Text="No keybind" Click="KeybindButtonClick" HorizontalAlignment="Right"/>
+            <controls:Checkbox Grid.Row="2" Grid.Column="2" x:Name="ChkUL"
+                               Width="22" Height="22" Margin="3,0,0,0"
+                               MouseDown="ChkUL_Click"/>
+
+            <!-- DL Slow -->
+            <Label Grid.Row="3" Grid.Column="0" Content="DL Slow" Style="{StaticResource RowLabel}"/>
+            <controls:Button Grid.Row="3" Grid.Column="1" x:Name="BindDLSlow"
+                             Text="No keybind" Click="KeybindButtonClick" HorizontalAlignment="Right"/>
+            <controls:Checkbox Grid.Row="3" Grid.Column="2" x:Name="ChkDLSlow"
+                               Width="22" Height="22" Margin="3,0,0,0"
+                               MouseDown="ChkDLSlow_Click"/>
+
+            <!-- UL Slow -->
+            <Label Grid.Row="4" Grid.Column="0" Content="UL Slow" Style="{StaticResource RowLabel}"/>
+            <controls:Button Grid.Row="4" Grid.Column="1" x:Name="BindULSlow"
+                             Text="No keybind" Click="KeybindButtonClick" HorizontalAlignment="Right"/>
+            <controls:Checkbox Grid.Row="4" Grid.Column="2" x:Name="ChkULSlow"
+                               Width="22" Height="22" Margin="3,0,0,0"
+                               MouseDown="ChkULSlow_Click"/>
+
+            <!-- Auto-resync -->
+            <Label Grid.Row="5" Grid.Column="0" Content="Auto-resync" Style="{StaticResource RowLabel}"/>
+            <controls:Button Grid.Row="5" Grid.Column="1" x:Name="BindAutoResync"
+                             Text="No keybind" Click="KeybindButtonClick" HorizontalAlignment="Right"/>
+            <controls:Checkbox Grid.Row="5" Grid.Column="2" x:Name="ChkAutoResync"
+                               Width="22" Height="22" Margin="3,0,0,0"
+                               MouseDown="ChkAutoResync_Click"/>
+
+            <!-- Buffering -->
+            <Label Grid.Row="6" Grid.Column="0" Content="Buffering" Style="{StaticResource RowLabel}"/>
+            <controls:Button Grid.Row="6" Grid.Column="1" x:Name="BindBuffering"
+                             Text="No keybind" Click="KeybindButtonClick" HorizontalAlignment="Right"/>
+            <controls:Checkbox Grid.Row="6" Grid.Column="2" x:Name="ChkBuffering"
+                               Width="22" Height="22" Margin="3,0,0,0"
+                               MouseDown="ChkBuffering_Click"/>
+        </Grid>
+
+        <!-- Divider -->
+        <Line Grid.Row="2" X1="0" X2="1" Stretch="Fill"
+              Stroke="{StaticResource DividorColor}" StrokeThickness="1"
+              VerticalAlignment="Center" Margin="0,4"/>
+
         <!-- Add Device Row -->
-        <Border Grid.Row="1" Style="{StaticResource DeviceCard}" Margin="0,0,0,10">
+        <Border Grid.Row="3" Style="{StaticResource DeviceCard}" Margin="0,0,0,6">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
@@ -144,27 +199,22 @@
                 </Grid.ColumnDefinitions>
 
                 <Grid Grid.Column="0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <TextBox x:Name="NewDeviceIP" Grid.Column="0"
-                             Style="{StaticResource SpeedBox}" Width="Auto"
-                             Text="" Margin="0,0,6,0"
-                             FontSize="12"
-                             ToolTip="Enter console IP address (e.g. 192.168.1.50)">
+                    <TextBox x:Name="NewDeviceIP" Style="{StaticResource SpeedBox}" Width="Auto"
+                             Text="" Margin="0,0,6,0" FontSize="12"
+                             ToolTip="Enter Xbox or PlayStation IP (e.g. 192.168.1.50)">
                         <TextBox.Template>
                             <ControlTemplate TargetType="TextBox">
-                                <Border Background="#080C14" BorderBrush="#1A2540"
-                                        BorderThickness="1" CornerRadius="5">
+                                <Border Background="{StaticResource BackColor}"
+                                        BorderBrush="{StaticResource DividorColor}"
+                                        BorderThickness="1" CornerRadius="4">
                                     <ScrollViewer x:Name="PART_ContentHost" Padding="8,4"/>
                                 </Border>
                             </ControlTemplate>
                         </TextBox.Template>
                     </TextBox>
-
-                    <TextBlock Grid.Column="0" Text="192.168.x.x — enter console IP"
-                               Foreground="#3A4A6A" FontFamily="Bahnschrift Light" FontSize="11"
+                    <TextBlock Text="Enter Xbox / PlayStation IP"
+                               Foreground="{StaticResource TextSecondary}"
+                               FontFamily="Bahnschrift Light" FontSize="11"
                                VerticalAlignment="Center" Margin="10,0,0,0"
                                IsHitTestVisible="False">
                         <TextBlock.Style>
@@ -180,26 +230,30 @@
                     </TextBlock>
                 </Grid>
 
-                <Button Grid.Column="1" Content="+ ADD DEVICE" Style="{StaticResource ActionButton}"
+                <Button Grid.Column="1" Content="+ ADD" Style="{StaticResource ActionButton}"
                         Click="AddDevice_Click" Margin="8,0,0,0"/>
-                <Button Grid.Column="2" Content="SCAN NETWORK" Style="{StaticResource ActionButton}"
+                <Button Grid.Column="2" Content="SCAN" Style="{StaticResource ActionButton}"
                         Click="ScanNetwork_Click" Margin="6,0,0,0"/>
             </Grid>
         </Border>
 
         <!-- Scan progress -->
-        <Border Grid.Row="1" x:Name="ScanProgress" Visibility="Collapsed"
-                Background="#0A1220" CornerRadius="6" Padding="10,6" Margin="0,70,0,10">
+        <Border Grid.Row="3" x:Name="ScanProgress" Visibility="Collapsed"
+                Background="{StaticResource LightBackColor}" CornerRadius="4"
+                Padding="10,5" Margin="0,48,0,0">
             <StackPanel Orientation="Horizontal">
-                <TextBlock x:Name="ScanStatus" Text="Scanning..." Foreground="#6B7FA3"
+                <TextBlock x:Name="ScanStatus" Text="Scanning..."
+                           Foreground="{StaticResource TextSecondary}"
                            FontFamily="Bahnschrift Light" FontSize="11" VerticalAlignment="Center"/>
-                <ProgressBar x:Name="ScanBar" Width="120" Height="4" Margin="10,0,0,0"
-                             Background="#1A2540" Foreground="#00D4FF" VerticalAlignment="Center"/>
+                <ProgressBar x:Name="ScanBar" Width="100" Height="3" Margin="10,0,0,0"
+                             Background="{StaticResource InactiveColor}"
+                             Foreground="{StaticResource AccentColor}"
+                             VerticalAlignment="Center"/>
             </StackPanel>
         </Border>
 
-        <!-- Device List -->
-        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+        <!-- Device list -->
+        <ScrollViewer Grid.Row="4" VerticalScrollBarVisibility="Auto" Margin="0,0,0,0">
             <ItemsControl x:Name="DeviceList">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
@@ -211,52 +265,53 @@
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
 
-                                <!-- Device icon + IP -->
-                                <StackPanel Grid.Column="0" Orientation="Vertical" VerticalAlignment="Center">
-                                    <TextBlock Text="{Binding Name}" Style="{StaticResource ValueLabel}"/>
-                                    <TextBlock Text="{Binding IP}" Style="{StaticResource HeaderLabel}" Margin="0,1,0,0"/>
+                                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Name}"
+                                               Foreground="{StaticResource TextPrimary}"
+                                               FontFamily="Bahnschrift Light" FontSize="13"/>
+                                    <TextBlock Text="{Binding IP}"
+                                               Foreground="{StaticResource TextSecondary}"
+                                               FontFamily="Bahnschrift Light" FontSize="10" Margin="0,1,0,0"/>
                                 </StackPanel>
 
-                                <!-- Upload limit -->
-                                <StackPanel Grid.Column="1" Orientation="Vertical" Margin="14,0" VerticalAlignment="Center">
-                                    <TextBlock Text="UL (Kbps)" Style="{StaticResource HeaderLabel}" HorizontalAlignment="Center"/>
+                                <StackPanel Grid.Column="1" Orientation="Vertical" Margin="12,0" VerticalAlignment="Center">
+                                    <TextBlock Text="UL (Kbps)"
+                                               Foreground="{StaticResource TextSecondary}"
+                                               FontFamily="Bahnschrift Light" FontSize="10"
+                                               HorizontalAlignment="Center"/>
                                     <TextBox Text="{Binding UploadKbps, UpdateSourceTrigger=PropertyChanged}"
                                              Style="{StaticResource SpeedBox}" Width="65"/>
                                 </StackPanel>
 
-                                <!-- Download limit -->
-                                <StackPanel Grid.Column="2" Orientation="Vertical" Margin="0,0,14,0" VerticalAlignment="Center">
-                                    <TextBlock Text="DL (Kbps)" Style="{StaticResource HeaderLabel}" HorizontalAlignment="Center"/>
+                                <StackPanel Grid.Column="2" Orientation="Vertical" Margin="0,0,12,0" VerticalAlignment="Center">
+                                    <TextBlock Text="DL (Kbps)"
+                                               Foreground="{StaticResource TextSecondary}"
+                                               FontFamily="Bahnschrift Light" FontSize="10"
+                                               HorizontalAlignment="Center"/>
                                     <TextBox Text="{Binding DownloadKbps, UpdateSourceTrigger=PropertyChanged}"
                                              Style="{StaticResource SpeedBox}" Width="65"/>
                                 </StackPanel>
 
-                                <!-- Status indicator -->
-                                <Ellipse Grid.Column="3" Width="8" Height="8" Margin="0,0,10,0" VerticalAlignment="Center">
-                                    <Ellipse.Style>
-                                        <Style TargetType="Ellipse">
-                                            <Setter Property="Fill" Value="#1A2540"/>
+                                <!-- D2 diamond status indicator -->
+                                <Path Grid.Column="3" Width="8" Height="8" Margin="0,0,10,0"
+                                      VerticalAlignment="Center"
+                                      Data="M4 0L8 4L4 8L0 4Z" Stretch="Uniform">
+                                    <Path.Style>
+                                        <Style TargetType="Path">
+                                            <Setter Property="Fill" Value="{StaticResource InactiveColor}"/>
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding Enabled}" Value="True">
-                                                    <Setter Property="Fill" Value="#00D4FF"/>
+                                                    <Setter Property="Fill" Value="{StaticResource AccentColor}"/>
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
-                                    </Ellipse.Style>
-                                </Ellipse>
+                                    </Path.Style>
+                                </Path>
 
-                                <!-- Toggle -->
-                                <ToggleButton Grid.Column="4" Style="{StaticResource ToggleOnOff}"
-                                              IsChecked="{Binding Enabled, Mode=TwoWay}"
-                                              Margin="0,0,10,0"/>
-
-                                <!-- Remove -->
-                                <Button Grid.Column="5" Content="✕" Style="{StaticResource DangerButton}"
-                                        Width="26" Padding="0" FontSize="12"
+                                <Button Grid.Column="4" Content="✕" Style="{StaticResource DangerButton}"
+                                        Width="24" Padding="0" FontSize="11"
                                         Tag="{Binding}"
                                         Click="RemoveDevice_Click"/>
                             </Grid>
@@ -267,27 +322,30 @@
         </ScrollViewer>
 
         <!-- Empty state -->
-        <StackPanel Grid.Row="2" x:Name="EmptyState" VerticalAlignment="Center" HorizontalAlignment="Center">
-            <Path Data="M21 6H3C1.9 6 1 6.9 1 8V16C1 17.1 1.9 18 3 18H21C22.1 18 23 17.1 23 16V8C23 6.9 22.1 6 21 6M11 13H8V16H6V13H3V11H6V8H8V11H11M15.5 15C14.7 15 14 14.3 14 13.5S14.7 12 15.5 12 17 12.7 17 13.5 16.3 15 15.5 15M19.5 12C18.7 12 18 11.3 18 10.5S18.7 9 19.5 9 21 9.7 21 10.5 20.3 12 19.5 12Z"
-                  Fill="#1A2540" Stretch="Uniform" Width="40" Height="40" Margin="0,0,0,12"/>
-            <TextBlock Text="No devices added" Foreground="#3A4A6A"
-                       FontFamily="Bahnschrift Light" FontSize="13" HorizontalAlignment="Center"/>
-            <TextBlock Text="Add a console IP above or scan your network" Foreground="#2A3A5A"
-                       FontFamily="Bahnschrift Light" FontSize="11" HorizontalAlignment="Center"
-                       Margin="0,4,0,0"/>
+        <StackPanel Grid.Row="4" x:Name="EmptyState" VerticalAlignment="Center" HorizontalAlignment="Center">
+            <Path Data="M7 6H17C18.6 6 20 7 20.8 8.4L22 11V15C22 16.1 21.1 17 20 17H4C2.9 17 2 16.1 2 15V11L3.2 8.4C4 7 5.4 6 7 6ZM10 10H8V8H6V10H4V12H6V14H8V12H10V10ZM16 9C15.4 9 15 9.4 15 10S15.4 11 16 11 17 10.6 17 10 16.6 9 16 9ZM18 11C17.4 11 17 11.4 17 12S17.4 13 18 13 19 12.6 19 12 18.6 11 18 11Z"
+                  Fill="{StaticResource InactiveColor}" Stretch="Uniform" Width="36" Height="36" Margin="0,0,0,10"/>
+            <TextBlock Text="No consoles added"
+                       Foreground="{StaticResource TextSecondary}"
+                       FontFamily="Bahnschrift Light" FontSize="12" HorizontalAlignment="Center"/>
+            <TextBlock Text="Add an Xbox or PlayStation IP above"
+                       Foreground="{StaticResource InactiveColor}"
+                       FontFamily="Bahnschrift Light" FontSize="10" HorizontalAlignment="Center"
+                       Margin="0,3,0,0"/>
         </StackPanel>
 
-        <!-- Footer - Apply button -->
-        <Grid Grid.Row="3" Margin="0,10,0,0">
+        <!-- Footer -->
+        <Grid Grid.Row="5" Margin="0,8,0,0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
             <TextBlock x:Name="StatusLabel" Grid.Column="0"
-                       Foreground="#3A4A6A" FontFamily="Bahnschrift Light" FontSize="11"
-                       VerticalAlignment="Center" Text="0 devices — limits inactive"/>
+                       Foreground="{StaticResource TextSecondary}"
+                       FontFamily="Bahnschrift Light" FontSize="11"
+                       VerticalAlignment="Center" Text="No consoles — add an IP above"/>
             <Button Grid.Column="1" Content="APPLY LIMITS" Style="{StaticResource ActionButton}"
-                    Click="ApplyLimits_Click" Padding="14,6"/>
+                    Click="ApplyLimits_Click" Padding="12,5"/>
         </Grid>
     </Grid>
 </UserControl>
