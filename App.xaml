@@ -21,36 +21,47 @@
             <FontFamily x:Key="SmallTitleFont">Bahnschrift Light</FontFamily>
             <FontFamily x:Key="BigTextFont">Microsoft JhengHei UI Light</FontFamily>
 
-            <!-- InfinLimit color palette — dark slate + electric cyan accent -->
-            <Color x:Key="Accent">#00D4FF</Color>
-            <SolidColorBrush x:Key="TitleColor" Color="#00D4FF"/>
-            <SolidColorBrush x:Key="AccentColor" Color="#00D4FF"/>
-            <SolidColorBrush x:Key="FancyColor" Color="#0A0E1A"/>
-            <SolidColorBrush x:Key="InactiveColor" Color="#1E2A3A"/>
-            <SolidColorBrush x:Key="BackColor" Color="#080C14"/>
-            <SolidColorBrush x:Key="LightBackColor" Color="#0E1622"/>
-            <SolidColorBrush x:Key="DividorColor" Color="#1A2540"/>
+            <!-- Destiny 2 color palette -->
+            <Color x:Key="Accent">#C8A951</Color>
+            <SolidColorBrush x:Key="TitleColor" Color="#C8A951"/>
+            <SolidColorBrush x:Key="AccentColor" Color="#C8A951"/>
+            <SolidColorBrush x:Key="FancyColor" Color="#0D0E15"/>
+            <SolidColorBrush x:Key="InactiveColor" Color="#1E1F2E"/>
+            <SolidColorBrush x:Key="BackColor" Color="#0B0C12"/>
+            <SolidColorBrush x:Key="LightBackColor" Color="#13141E"/>
+            <SolidColorBrush x:Key="DividorColor" Color="#252638"/>
 
-            <SolidColorBrush x:Key="Upload" Color="#FF6B6B"/>
-            <SolidColorBrush x:Key="Download" Color="#00D4FF"/>
-            <SolidColorBrush x:Key="TextPrimary" Color="#E8F0FF"/>
-            <SolidColorBrush x:Key="TextSecondary" Color="#6B7FA3"/>
+            <SolidColorBrush x:Key="Upload" Color="#E85D5D"/>
+            <SolidColorBrush x:Key="Download" Color="#C8A951"/>
+            <SolidColorBrush x:Key="TextPrimary" Color="#F0EEE8"/>
+            <SolidColorBrush x:Key="TextSecondary" Color="#7A7A8A"/>
 
             <!-- Math Converter -->
             <local:MathConverter x:Key="Math" />
 
-            <!-- Geometry Icons -->
-            <Geometry x:Key="CloseIcon">M18.3 5.71a.996.996 0 00-1.41 0L12 10.59 7.11 5.7A.996.996 0 005.7 7.11L10.59 12 5.7 16.89a.996.996 0 101.41 1.41L12 13.41l4.89 4.89a.996.996 0 101.41-1.41L13.41 12l4.89-4.89c.38-.38.38-1.02 0-1.4z</Geometry>
-            <Geometry x:Key="HideIcon">M12 8l-6 6 1.41 1.41L12 10.83l4.59 4.58L18 14z</Geometry>
-            <Geometry x:Key="Overlay">M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z</Geometry>
-            <Geometry x:Key="LogIcon">M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z</Geometry>
-            <Geometry x:Key="SettingsIcon">M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5a3.5,3.5 0 0,1 3.5,3.5A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.22,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.22,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.68 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z</Geometry>
-            <Geometry x:Key="AhkIcon">M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M7.07,18.28C7.5,17.38 10.12,16.09 12,17.05C13.88,16.09 16.5,17.38 16.93,18.28C15.57,19.36 13.86,20 12,20C10.14,20 8.43,19.36 7.07,18.28M18.36,16.83C16.93,15.09 13.46,15.14 12,16.14C10.54,15.14 7.07,15.09 5.64,16.83C4.62,15.5 4,13.82 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,13.82 19.38,15.5 18.36,16.83Z</Geometry>
-            <Geometry x:Key="ArcIcon">M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12C4,13.85 4.63,15.55 5.68,16.91L16.91,5.68C15.55,4.63 13.85,4 12,4Z</Geometry>
-            <Geometry x:Key="QuestionMark">M12,2C13.1,2 14,2.9 14,4C14,5.1 13.1,6 12,6C10.9,6 10,5.1 10,4C10,2.9 10.9,2 12,2M21,9V7L15,1H5C3.89,1 3,1.89 3,3V21A2,2 0 0,0 5,23H19A2,2 0 0,0 21,21V9M19,21H5V3H12V9H19V21Z</Geometry>
-            <Geometry x:Key="Speaker">M13.0355 8.5211C13.4261 8.1306 14.0674 8.1267 14.3881 8.5764 15.0882 9.5579 15.5 10.7592 15.5 12.0567 15.5 13.3541 15.0882 14.5554 14.3881 15.537 14.0674 15.9866 13.4261 15.9827 13.0355 15.5922 12.645 15.2017 12.6586 14.5725 12.9408 14.0978 13.296 13.5002 13.5 12.8023 13.5 12.0567 13.5 11.3111 13.296 10.6131 12.9408 10.0156 12.6586 9.5408 12.645 8.9116 13.0355 8.5211M15.864 5.6932C16.2545 5.3026 16.8921 5.2998 17.2419 5.7271 18.6532 7.4512 19.5 9.6553 19.5 12.0571 19.5 14.459 18.6532 16.6631 17.2419 18.3871 16.8921 18.8145 16.2545 18.8116 15.864 18.4211 15.4734 18.0306 15.4792 17.4007 15.8183 16.9648 16.8723 15.6098 17.5 13.9068 17.5 12.0571 17.5 10.2075 16.8723 8.5045 15.8183 7.1494 15.4792 6.7135 15.4734 6.0837 15.864 5.6932M11 16.5858V7.4142C11 6.5233 9.9229 6.0771 9.2929 6.7071L7.2929 8.7071C7.1054 8.8946 6.851 9 6.5858 9H5C4.4477 9 4 9.4477 4 10V14C4 14.5523 4.4477 15 5 15H6.5858C6.851 15 7.1054 15.1054 7.2929 15.2929L9.2929 17.2929C9.9229 17.9229 11 17.4767 11 16.5858Z</Geometry>
-            <Geometry x:Key="Pin">M 12.956 18.956 L 9 15 l -3.956 -3.956 a 1 1 0 0 1 0.314 -1.626 l 5.261 -2.255 a 1 1 0 0 0 0.535 -0.548 l 1.283 -3.207 a 1 1 0 0 1 1.635 -0.336 l 6.856 6.856 a 1 1 0 0 1 -0.336 1.635 l -3.207 1.283 a 1 1 0 0 0 -0.548 0.535 l -2.255 5.261 a 1 1 0 0 1 -1.626 0.314 M 8 14 L 5 18 Q 3 21 6 19 L 10 16</Geometry>
-            <Geometry x:Key="ConsoleIcon">M21 6H3C1.9 6 1 6.9 1 8V16C1 17.1 1.9 18 3 18H21C22.1 18 23 17.1 23 16V8C23 6.9 22.1 6 21 6M11 13H8V16H6V13H3V11H6V8H8V11H11M15.5 15C14.7 15 14 14.3 14 13.5S14.7 12 15.5 12 17 12.7 17 13.5 16.3 15 15.5 15M19.5 12C18.7 12 18 11.3 18 10.5S18.7 9 19.5 9 21 9.7 21 10.5 20.3 12 19.5 12Z</Geometry>
+            <!-- Destiny 2 Geometry Icons -->
+            <!-- Close: sharp angular X -->
+            <Geometry x:Key="CloseIcon">M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z</Geometry>
+            <!-- Hide: angular chevron -->
+            <Geometry x:Key="HideIcon">M7 14L12 9 17 14z</Geometry>
+            <!-- Overlay: D2 reticle / ghost sight -->
+            <Geometry x:Key="Overlay">M12 2L9 5H5L5 9L2 12L5 15V19H9L12 22L15 19H19V15L22 12L19 9V5H15L12 2ZM12 8A4 4 0 0 1 16 12A4 4 0 0 1 12 16A4 4 0 0 1 8 12A4 4 0 0 1 12 8ZM12 10A2 2 0 0 0 10 12A2 2 0 0 0 12 14A2 2 0 0 0 14 12A2 2 0 0 0 12 10Z</Geometry>
+            <!-- Log: D2-style angular document -->
+            <Geometry x:Key="LogIcon">M4 2H14L20 8V22H4V2ZM13 3.5V9H18.5L13 3.5ZM6 13H18V11H6V13ZM6 17H14V15H6V17Z</Geometry>
+            <!-- Settings: D2 hexagonal gear -->
+            <Geometry x:Key="SettingsIcon">M12 1L15.5 4H19V7.5L22 11V13L19 16.5V20H15.5L12 23L8.5 20H5V16.5L2 13V11L5 7.5V4H8.5L12 1ZM12 8A4 4 0 0 0 8 12A4 4 0 0 0 12 16A4 4 0 0 0 16 12A4 4 0 0 0 12 8Z</Geometry>
+            <!-- AHK: D2 Guardian crest (triforce-diamond) -->
+            <Geometry x:Key="AhkIcon">M12 2L16 8H22L18 13L20 20L12 16L4 20L6 13L2 8H8L12 2Z</Geometry>
+            <!-- Arc: D2 Arc subclass lightning bolt -->
+            <Geometry x:Key="ArcIcon">M13 2L4.5 13H11L9 22L19.5 10H13L15 2Z</Geometry>
+            <!-- QuestionMark: D2 angular info diamond -->
+            <Geometry x:Key="QuestionMark">M12 2L22 12L12 22L2 12L12 2ZM12 8V13M12 15V16</Geometry>
+            <!-- Speaker: D2 sound/wave icon -->
+            <Geometry x:Key="Speaker">M11 16.5858V7.4142C11 6.5233 9.9229 6.0771 9.2929 6.7071L7.2929 8.7071C7.1054 8.8946 6.851 9 6.5858 9H5C4.4477 9 4 9.4477 4 10V14C4 14.5523 4.4477 15 5 15H6.5858C6.851 15 7.1054 15.1054 7.2929 15.2929L9.2929 17.2929C9.9229 17.9229 11 17.4767 11 16.5858ZM14 8.5C15.7 9.7 17 11.7 17 12S15.7 14.3 14 15.5M17 5.5C20 7.3 22 9.5 22 12S20 16.7 17 18.5</Geometry>
+            <!-- Pin: D2 target marker -->
+            <Geometry x:Key="Pin">M12 2L15 8H20L16 12L18 19L12 15.5L6 19L8 12L4 8H9L12 2ZM12 13L9 18 12 16.5 15 18Z</Geometry>
+            <!-- Console: D2-style gamepad -->
+            <Geometry x:Key="ConsoleIcon">M7 6H17C18.6 6 20 7 20.8 8.4L22 11V15C22 16.1 21.1 17 20 17H4C2.9 17 2 16.1 2 15V11L3.2 8.4C4 7 5.4 6 7 6ZM10 10H8V8H6V10H4V12H6V14H8V12H10V10ZM16 9C15.4 9 15 9.4 15 10S15.4 11 16 11 17 10.6 17 10 16.6 9 16 9ZM18 11C17.4 11 17 11.4 17 12S17.4 13 18 13 19 12.6 19 12 18.6 11 18 11Z</Geometry>
 
             <!-- Slider Style -->
             <Style x:Key="Slider" TargetType="Slider">
@@ -90,18 +101,40 @@
                     <Setter.Value>
                         <ControlTemplate TargetType="Window">
                             <Grid x:Name="mainddd" MouseDown="BorderMouseDown">
-                                <Border x:Name="backg" BorderThickness="1" BorderBrush="#1A2540"
+                                <Border x:Name="backg" BorderThickness="1" BorderBrush="#2A2415"
                                         CornerRadius="14">
                                     <Border.Background>
-                                        <SolidColorBrush Color="#080C14" Opacity="0.97"/>
+                                        <SolidColorBrush Color="#0B0C12" Opacity="0.98"/>
                                     </Border.Background>
                                 </Border>
                                 <!-- Subtle top accent line -->
+                                <!-- D2 gold top accent bar -->
                                 <Border VerticalAlignment="Top" Height="2" CornerRadius="14,14,0,0" Margin="1,1,1,0">
                                     <Border.Background>
                                         <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
                                             <GradientStop Color="Transparent" Offset="0"/>
-                                            <GradientStop Color="#00D4FF" Offset="0.5"/>
+                                            <GradientStop Color="#C8A951" Offset="0.3"/>
+                                            <GradientStop Color="#E8C96C" Offset="0.5"/>
+                                            <GradientStop Color="#C8A951" Offset="0.7"/>
+                                            <GradientStop Color="Transparent" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Border.Background>
+                                </Border>
+                                <!-- D2 subtle corner diamond accents -->
+                                <Border VerticalAlignment="Top" HorizontalAlignment="Left" Width="14" Height="14"
+                                        Margin="1,1,0,0" CornerRadius="14,0,0,0" Opacity="0.4">
+                                    <Border.Background>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                            <GradientStop Color="#C8A951" Offset="0"/>
+                                            <GradientStop Color="Transparent" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Border.Background>
+                                </Border>
+                                <Border VerticalAlignment="Top" HorizontalAlignment="Right" Width="14" Height="14"
+                                        Margin="0,1,1,0" CornerRadius="0,14,0,0" Opacity="0.4">
+                                    <Border.Background>
+                                        <LinearGradientBrush StartPoint="1,0" EndPoint="0,1">
+                                            <GradientStop Color="#C8A951" Offset="0"/>
                                             <GradientStop Color="Transparent" Offset="1"/>
                                         </LinearGradientBrush>
                                     </Border.Background>
