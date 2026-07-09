@@ -244,6 +244,10 @@ namespace InfinLimit.Interception.Modules
             // spoof packet), WinDivert is already forwarding everything it sees.
             Task.Delay(300).ContinueWith(_ =>
             {
+                // Always enable IP forwarding first — needed even when ARP spoofing
+                // isn't applicable (e.g. PS4 on PC hotspot, where ICS routes traffic
+                // through the PC naturally without needing ARP MITM).
+                ArpSpoofer.EnsureIpForwarding();
                 StartArpSpoofer();
                 // Wait for ARP to propagate and traffic to stabilise, then throttle.
                 Task.Delay(800).ContinueWith(__ => { if (IsEnabled) _passing = false; });

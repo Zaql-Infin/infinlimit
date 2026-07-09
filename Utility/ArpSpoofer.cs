@@ -32,6 +32,10 @@ namespace InfinLimit.Utility
         public bool IsActive { get; private set; }
         public string StatusMessage { get; private set; } = "Idle";
 
+        // Enables IP forwarding unconditionally — called even when ARP spoofing isn't needed
+        // (e.g. PS4 connected through PC hotspot, where traffic flows naturally via ICS).
+        public static void EnsureIpForwarding() => EnableIpForwarding(GetLocalIP());
+
         public bool Start(List<string> consoleIps)
         {
             try
