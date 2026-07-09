@@ -28,7 +28,7 @@
             <SolidColorBrush x:Key="AccentColor" Color="#4D8FFF"/>
             <SolidColorBrush x:Key="UiAccent" Color="#4D8FFF"/>
             <SolidColorBrush x:Key="FancyColor" Color="#080810"/>
-            <SolidColorBrush x:Key="InactiveColor" Color="#252540"/>
+            <SolidColorBrush x:Key="InactiveColor" Color="#3E3E72"/>
             <SolidColorBrush x:Key="BackColor" Color="#0C0C1C"/>
             <SolidColorBrush x:Key="LightBackColor" Color="#111124"/>
             <SolidColorBrush x:Key="DividorColor" Color="#1C1C38"/>
