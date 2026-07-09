@@ -404,6 +404,46 @@ namespace InfinLimit
             }
         }
 
+        private static string ModulePortName(string name) => name switch
+        {
+            "PVE"       => "3074",
+            "PVP"       => "27K",
+            "З0K"       => "30K",
+            "API Block" => "7500",
+            "Multishot" => "SHOT",
+            "Swapper"   => "SWAP",
+            _           => name
+        };
+
+        private void ModuleTabClick(object sender, RoutedEventArgs e)
+        {
+            if (sender is System.Windows.Controls.Button btn)
+            {
+                var moduleName = btn.Tag?.ToString();
+                if (moduleName != null && InterceptionManager.GetModule(moduleName) != null)
+                {
+                    Config.Instance.CurrentModule = moduleName;
+                    UpdateSelectedModule();
+                }
+            }
+        }
+
+        private void UpdateTabHighlights()
+        {
+            var map = new (string tabName, string module)[]
+            {
+                ("Tab_3074", "PVE"), ("Tab_27K", "PVP"), ("Tab_30K", "З0K"),
+                ("Tab_7500", "API Block"), ("Tab_SWAP", "Swapper"), ("Tab_SHOT", "Multishot")
+            };
+            var accent = Application.Current.FindResource("AccentColor") as SolidColorBrush;
+            var inactive = Application.Current.FindResource("TextSecondary") as SolidColorBrush;
+            foreach (var (tabName, module) in map)
+            {
+                if (FindName(tabName) is System.Windows.Controls.Button btn)
+                    btn.Foreground = CurrentModuleName == module ? accent : inactive;
+            }
+        }
+
         private void UpdateSelectedModule()
         {
             var targetModule = CurrentModuleName;
@@ -415,7 +455,7 @@ namespace InfinLimit
                 Logger.Info($"CurrentModule was null, set to first module: {targetModule}");
             }
 
-            SelectedModuleLabel.Content = targetModule;
+            SelectedModuleLabel.Content = ModulePortName(targetModule);
             SelectedModuleButton.PathData = CurrentModule.Icon;
             SelectedModuleButton.GlowColor = CurrentModule.Color;
             SelectedModuleButton.RefreshAppearance(null, null);
@@ -599,6 +639,8 @@ namespace InfinLimit
             { API_Panel.Visibility = Visibility.Collapsed;
                 SWAPPER_Panel.Visibility = Visibility.Collapsed;
             }
+
+            UpdateTabHighlights();
         }
 
 

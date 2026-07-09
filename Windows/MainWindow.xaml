@@ -102,7 +102,7 @@
                                        FontFamily="{StaticResource BigTextFont}" FontSize="13"
                                        Foreground="{StaticResource AccentColor}"
                                        VerticalAlignment="Center"/>
-                            <TextBlock Text="  10"
+                            <TextBlock Text="  20"
                                        FontFamily="{StaticResource Kantumruy}" FontSize="10"
                                        Foreground="{StaticResource TextSecondary}"
                                        VerticalAlignment="Center"/>
@@ -164,6 +164,48 @@
 
                 <Line X1="0" X2="290" Stroke="{StaticResource DividorColor}" StrokeThickness="1"/>
 
+                <!-- ═══ MODULE TAB STRIP ═══ -->
+                <Border Background="{StaticResource BackColor}" Padding="6,5">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <StackPanel.Resources>
+                            <Style TargetType="Button">
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="Foreground" Value="{StaticResource TextSecondary}"/>
+                                <Setter Property="BorderThickness" Value="0"/>
+                                <Setter Property="Padding" Value="10,3"/>
+                                <Setter Property="Margin" Value="2,0"/>
+                                <Setter Property="Cursor" Value="Hand"/>
+                                <Setter Property="FontFamily" Value="{StaticResource SmallTitleFont}"/>
+                                <Setter Property="FontSize" Value="13"/>
+                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="bd" Background="{TemplateBinding Background}"
+                                                    Padding="{TemplateBinding Padding}" CornerRadius="5">
+                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="bd" Property="Background" Value="{StaticResource DividorColor}"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </StackPanel.Resources>
+                        <Button x:Name="Tab_3074" Content="3074" Tag="PVE"       Click="ModuleTabClick"/>
+                        <Button x:Name="Tab_27K"  Content="27K"  Tag="PVP"       Click="ModuleTabClick"/>
+                        <Button x:Name="Tab_30K"  Content="30K"  Tag="З0K"       Click="ModuleTabClick"/>
+                        <Button x:Name="Tab_7500" Content="7500" Tag="API Block"  Click="ModuleTabClick"/>
+                        <Button x:Name="Tab_SWAP" Content="SWAP" Tag="Swapper"   Click="ModuleTabClick"/>
+                        <Button x:Name="Tab_SHOT" Content="SHOT" Tag="Multishot" Click="ModuleTabClick"/>
+                    </StackPanel>
+                </Border>
+
+                <Line X1="0" X2="290" Stroke="{StaticResource DividorColor}" StrokeThickness="1"/>
+
                 <!-- ═══ CONTENT AREA ═══ -->
                 <Grid>
 
@@ -171,56 +213,60 @@
                     <Border x:Name="ModuleSettingsBorder"
                             Background="{StaticResource LightBackColor}"
                             CornerRadius="0,0,12,12" MinHeight="100">
-                        <StackPanel x:Name="ModuleSettingsPanel" Margin="10,4,10,4">
+                        <StackPanel x:Name="ModuleSettingsPanel" Margin="0,0,0,8">
 
-                            <!-- MODULE HEADER -->
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Top">
-                                <controls:WindowControlButton x:Name="SelectedModuleButton"
-                                    Width="30" Height="30" Margin="4,4,4,0"
-                                    VerticalAlignment="Center"
-                                    Click="ModuleSelectionClick"
-                                    PathData="{StaticResource ArcIcon}"
-                                    FillColor="{StaticResource InactiveColor}" GlowColor="{StaticResource TitleColor}"
-                                    MaxScale="1.05" Scale="1.0"/>
-                                <Label x:Name="SelectedModuleLabel" Content="PVE Multishot"
-                                       Height="40" Margin="-5,-2,0,0"
-                                       HorizontalContentAlignment="Left"
-                                       VerticalContentAlignment="Center"
-                                       FontFamily="{StaticResource TitleFont}" FontSize="26"
-                                       Foreground="{StaticResource AccentColor}"/>
+                            <!-- MODULE HEADER (DarkLimiter style) -->
+                            <Grid Margin="14,10,14,6">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Ellipse Width="7" Height="7" VerticalAlignment="Center" Margin="0,0,7,0"
+                                             Fill="{StaticResource AccentColor}"/>
+                                    <Label x:Name="SelectedModuleLabel" Content="3074"
+                                           Padding="0" Margin="0" Height="Auto"
+                                           FontFamily="{StaticResource BigTextFont}" FontSize="18"
+                                           Foreground="{StaticResource TextPrimary}"
+                                           VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <controls:WindowControlButton Scale="0.85" MaxScale="0.9" Height="14" Width="14"
+                                    HorizontalAlignment="Right" VerticalAlignment="Center"
+                                    PathData="{StaticResource QuestionMark}"
+                                    FillColor="{StaticResource InactiveColor}" GlowColor="{StaticResource AccentColor}"
+                                    Click="Description_Click"/>
+                            </Grid>
+
+                            <!-- Hidden compat elements -->
+                            <controls:WindowControlButton x:Name="SelectedModuleButton" Visibility="Collapsed"
+                                Width="1" Height="1" Click="ModuleSelectionClick"
+                                PathData="{StaticResource ArcIcon}"
+                                FillColor="{StaticResource InactiveColor}" GlowColor="{StaticResource TitleColor}"/>
+
+                            <StackPanel x:Name="DescriptionPanel" Margin="14,0,14,4" Visibility="Collapsed">
+                                <TextBlock x:Name="Description" FontSize="11" TextWrapping="Wrap"
+                                           Foreground="{StaticResource TextSecondary}" FontFamily="{StaticResource SmallTitleFont}"/>
+                                <Line X1="0" X2="260" Stroke="{StaticResource DividorColor}" StrokeThickness="1" Margin="0,4,0,0"/>
                             </StackPanel>
 
-                            <Line X1="40" X2="{Binding ActualWidth, ElementName=SelectedModuleLabel, Converter={StaticResource Math}, ConverterParameter=x+28}"
-                                  Opacity="0.5" Stroke="{StaticResource InactiveColor}" StrokeThickness="2" Margin="0,-3,0,6"/>
-
-                            <StackPanel x:Name="DescriptionPanel" Margin="6,0" Visibility="Collapsed">
-                                <Viewbox StretchDirection="UpOnly" Stretch="UniformToFill" MaxWidth="190">
-                                    <TextBlock x:Name="Description" FontSize="11" TextWrapping="Wrap" HorizontalAlignment="Center"
-                                               MinWidth="175" MaxWidth="195"
-                                               Foreground="{StaticResource TitleColor}" FontFamily="{StaticResource SmallTitleFont}"/>
-                                </Viewbox>
-                                <Separator Background="{StaticResource InactiveColor}" Opacity="0.5" Margin="5,4"/>
-                            </StackPanel>
+                            <Line X1="0" X2="290" Stroke="{StaticResource DividorColor}" StrokeThickness="1" Margin="0,0,0,4"/>
 
                             <!-- SETTINGS -->
                             <Grid MinHeight="64">
-                                <StackPanel Orientation="Vertical" Margin="10,0,10,10" VerticalAlignment="Center">
+                                <StackPanel Orientation="Vertical" Margin="14,0,14,4" VerticalAlignment="Center">
                                     <StackPanel.Resources>
                                         <Style TargetType="Label">
-                                            <Setter Property="Foreground" Value="{StaticResource TitleColor}"/>
+                                            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
                                             <Setter Property="Opacity" Value="0.9"/>
-                                            <Setter Property="FontFamily" Value="{StaticResource Kantumruy}"/>
-                                            <Setter Property="FontSize" Value="15"/>
-                                            <Setter Property="Margin" Value="-6,-6"/>
+                                            <Setter Property="FontFamily" Value="{StaticResource SmallTitleFont}"/>
+                                            <Setter Property="FontSize" Value="13"/>
+                                            <Setter Property="Padding" Value="0"/>
+                                            <Setter Property="Margin" Value="0,0"/>
                                             <Setter Property="VerticalAlignment" Value="Center"/>
                                         </Style>
                                         <Style TargetType="controls:Checkbox">
-                                            <Setter Property="Margin" Value="0,2"/>
+                                            <Setter Property="Margin" Value="6,0,0,0"/>
                                             <Setter Property="VerticalAlignment" Value="Center"/>
                                             <Setter Property="HorizontalAlignment" Value="Right"/>
                                         </Style>
                                         <Style TargetType="Grid">
-                                            <Setter Property="MinHeight" Value="20"/>
+                                            <Setter Property="MinHeight" Value="28"/>
                                         </Style>
                                         <Style TargetType="controls:Button">
                                             <Setter Property="Background" Value="{StaticResource InactiveColor}"/>
