@@ -32,10 +32,13 @@ namespace InfinLimit.Controls
                 ? ((SolidColorBrush)Application.Current.FindResource("AccentColor")).Color
                 : ((SolidColorBrush)Application.Current.FindResource("InactiveColor")).Color;
 
-            // Animate track color
-            Track.Background.BeginAnimation(SolidColorBrush.ColorProperty, null);
-            var trackBrush = new SolidColorBrush(((SolidColorBrush)Track.Background).Color);
-            Track.Background = trackBrush;
+            // StaticResource brushes are frozen — replace with a mutable copy on first call
+            var trackBrush = Track.Background as SolidColorBrush;
+            if (trackBrush == null || trackBrush.IsFrozen)
+            {
+                trackBrush = new SolidColorBrush(trackBrush?.Color ?? Colors.Transparent);
+                Track.Background = trackBrush;
+            }
             trackBrush.BeginAnimation(SolidColorBrush.ColorProperty,
                 new ColorAnimation(targetColor, AnimDur) { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } });
 
