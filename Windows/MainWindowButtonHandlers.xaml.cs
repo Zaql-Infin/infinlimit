@@ -160,8 +160,8 @@ namespace InfinLimit
             }
             else
             {
-                Main.MinWidth = 300;
-                Main.MinHeight = 445;
+                Main.MinWidth = 290;
+                Main.MinHeight = 0;
 
                 ConsolePage.ElementFadeOut(time);
                 TopBlock.ElementFadeIn(time);

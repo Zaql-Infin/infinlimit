@@ -46,7 +46,7 @@
                 StrokeThickness="0.1"/>
         </Canvas>
 
-        <Grid x:Name="Main" MinWidth="290" MinHeight="445">
+        <Grid x:Name="Main" MinWidth="290">
 
             <!-- Hidden volume slider (kept for code compatibility) -->
             <Slider x:Name="VolumeSlider" Visibility="Hidden"
