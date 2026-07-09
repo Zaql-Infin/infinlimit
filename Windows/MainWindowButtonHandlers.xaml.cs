@@ -142,13 +142,10 @@ namespace InfinLimit
 
             if (_consolePageOpen)
             {
-                // Force the window wide/tall enough to show the full console panel.
-                // The Main grid height binding collapses to ~56px when TopBlock and
-                // ModuleSettingsBorder fade-collapse, so we pin MinHeight here.
-                // MinWidth forces the window wide enough that the panel's 330px content
-                // has room after ConsolePage margins (20+20) and padding (16+16).
-                Main.MinWidth = 460;
-                Main.MinHeight = 0;
+                // Switch to manual sizing at exactly 1280x720 for the console panel
+                this.SizeToContent = System.Windows.SizeToContent.Manual;
+                this.Width  = 1280;
+                this.Height = 720;
 
                 TopBlock.ElementFadeOut(time);
                 ModuleSettingsBorder.ElementFadeOut(time);
@@ -160,6 +157,10 @@ namespace InfinLimit
             }
             else
             {
+                // Restore auto-sizing for the compact main panel
+                this.ClearValue(Window.WidthProperty);
+                this.ClearValue(Window.HeightProperty);
+                this.SizeToContent = System.Windows.SizeToContent.WidthAndHeight;
                 Main.MinWidth = 290;
                 Main.MinHeight = 0;
 

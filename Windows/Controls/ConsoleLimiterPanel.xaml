@@ -349,11 +349,11 @@
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <TextBlock Grid.Column="0" Text="3074-3173" VerticalAlignment="Center" Foreground="{StaticResource TextPrimary}" FontSize="12"/>
-                    <controls:Button x:Name="PortKeybindBtn" Grid.Column="1" Margin="8,0,8,0" Text="No keybind" Click="PortKeybind_Click" HorizontalAlignment="Stretch"/>
+                    <controls:Button x:Name="PortKeybindBtn" Grid.Column="1" Margin="8,0,8,0" Text="No keybind" Click="PortKeybind_Click" MinWidth="100" MaxWidth="180"/>
                     <controls:Checkbox x:Name="PortToggleCB" Grid.Column="2" MouseLeftButtonDown="PortToggle_Click"/>
                 </Grid>
             </Border>
@@ -361,11 +361,11 @@
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <TextBlock Grid.Column="0" Text="7500-7509" VerticalAlignment="Center" Foreground="{StaticResource TextPrimary}" FontSize="12"/>
-                    <controls:Button x:Name="Port2KeybindBtn" Grid.Column="1" Margin="8,0,8,0" Text="No keybind" Click="Port2Keybind_Click" HorizontalAlignment="Stretch"/>
+                    <controls:Button x:Name="Port2KeybindBtn" Grid.Column="1" Margin="8,0,8,0" Text="No keybind" Click="Port2Keybind_Click" MinWidth="100" MaxWidth="180"/>
                     <controls:Checkbox x:Name="Port2ToggleCB" Grid.Column="2" MouseLeftButtonDown="Port2Toggle_Click"/>
                 </Grid>
             </Border>
