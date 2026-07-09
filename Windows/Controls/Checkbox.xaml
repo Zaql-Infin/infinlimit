@@ -4,29 +4,27 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              mc:Ignorable="d"
-             d:DesignHeight="18" d:DesignWidth="34"
+             d:DesignHeight="18" d:DesignWidth="18"
              Focusable="False" IsHitTestVisible="True"
-             Width="34" Height="18">
+             Width="18" Height="18">
     <Grid Cursor="Hand">
-        <!-- Track -->
+        <!-- Box -->
         <Border x:Name="Track"
-                CornerRadius="9"
+                CornerRadius="4"
                 Background="{StaticResource InactiveColor}"
                 MouseEnter="Track_MouseEnter"
                 MouseLeave="Track_MouseLeave"
                 MouseDown="Track_MouseDown"/>
 
-        <!-- Thumb -->
-        <Ellipse x:Name="Thumb"
-                 Width="14" Height="14"
-                 Fill="White"
-                 HorizontalAlignment="Left"
-                 VerticalAlignment="Center"
-                 Margin="2,0,0,0"
-                 IsHitTestVisible="False">
-            <Ellipse.Effect>
-                <DropShadowEffect ShadowDepth="0" BlurRadius="4" Color="Black" Opacity="0.3"/>
-            </Ellipse.Effect>
-        </Ellipse>
+        <!-- Checkmark -->
+        <Path x:Name="Thumb"
+              Data="M4 9 L7 13 L14 5"
+              Stroke="White"
+              StrokeThickness="2"
+              StrokeLineJoin="Round"
+              StrokeStartLineCap="Round"
+              StrokeEndLineCap="Round"
+              IsHitTestVisible="False"
+              Opacity="0"/>
     </Grid>
 </UserControl>

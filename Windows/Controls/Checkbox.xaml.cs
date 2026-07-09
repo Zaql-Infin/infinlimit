@@ -14,10 +14,7 @@ namespace InfinLimit.Controls
 
         public bool Checked { get; private set; } = false;
 
-        // Thumb travel: OFF = Margin(2,0,0,0)  ON = Margin(18,0,0,0)
-        private static readonly Thickness ThumbOff = new Thickness(2, 0, 0, 0);
-        private static readonly Thickness ThumbOn  = new Thickness(18, 0, 0, 0);
-        private static readonly Duration AnimDur   = new Duration(TimeSpan.FromMilliseconds(160));
+        private static readonly Duration AnimDur = new Duration(TimeSpan.FromMilliseconds(160));
 
         public Checkbox()
         {
@@ -42,12 +39,10 @@ namespace InfinLimit.Controls
             trackBrush.BeginAnimation(SolidColorBrush.ColorProperty,
                 new ColorAnimation(targetColor, AnimDur) { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } });
 
-            // Animate thumb slide
-            var thumbAnim = new ThicknessAnimation(enabled ? ThumbOn : ThumbOff, AnimDur)
-            {
-                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
-            };
-            Thumb.BeginAnimation(MarginProperty, thumbAnim);
+            // Fade checkmark in/out
+            Thumb.BeginAnimation(OpacityProperty,
+                new DoubleAnimation(enabled ? 1.0 : 0.0, AnimDur)
+                { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } });
         }
 
         private void Track_MouseEnter(object sender, MouseEventArgs e)
