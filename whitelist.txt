@@ -1,0 +1,4 @@
+# InfinLimiter HWID Whitelist
+# One HWID per line. Lines starting with # are ignored.
+# Format: 32-character hex string (shown in the "Not Authorized" error on first launch)
+# Add a HWID here to approve a user. Remove it to revoke access.
