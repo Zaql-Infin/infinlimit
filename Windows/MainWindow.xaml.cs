@@ -435,12 +435,17 @@ namespace InfinLimit
                 ("Tab_3074", "PVE"), ("Tab_27K", "PVP"), ("Tab_30K", "З0K"),
                 ("Tab_7500", "API Block"), ("Tab_SWAP", "Swapper"), ("Tab_SHOT", "Multishot")
             };
-            var accent = Application.Current.FindResource("AccentColor") as SolidColorBrush;
-            var inactive = Application.Current.FindResource("TextSecondary") as SolidColorBrush;
+            var activeTxt = Application.Current.FindResource("TextPrimary") as SolidColorBrush;
+            var inactive  = Application.Current.FindResource("TextSecondary") as SolidColorBrush;
             foreach (var (tabName, module) in map)
             {
                 if (FindName(tabName) is System.Windows.Controls.Button btn)
-                    btn.Foreground = CurrentModuleName == module ? accent : inactive;
+                {
+                    bool active = CurrentModuleName == module;
+                    btn.Foreground = active ? activeTxt : inactive;
+                    if (btn.Template.FindName("UnderLine", btn) is Border line)
+                        line.Opacity = active ? 1.0 : 0.0;
+                }
             }
         }
 

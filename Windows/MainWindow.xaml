@@ -81,34 +81,39 @@
             <!-- Main vertical layout -->
             <StackPanel>
 
-                <!-- ═══ TITLE BAR ═══ -->
-                <Border Background="{StaticResource LightBackColor}" Height="34" Padding="12,0,2,0">
+                <!-- ═══ TITLE BAR (InfinClient style) ═══ -->
+                <Border Background="{StaticResource FancyColor}" Height="44" Padding="10,0,6,0">
                     <Grid>
-                        <!-- App name -->
+                        <!-- Left: Logo circle + App name + version badge -->
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Border Width="28" Height="28" CornerRadius="14"
+                                    Background="{StaticResource AccentColor}" Margin="0,0,9,0">
+                                <Path Data="{StaticResource Overlay}" Fill="White"
+                                      Stretch="Uniform" Width="13" Height="13"
+                                      HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
                             <TextBlock Text="INFINLIMIT"
-                                       FontFamily="{StaticResource BigTextFont}" FontSize="13"
-                                       Foreground="{StaticResource AccentColor}"
-                                       VerticalAlignment="Center"/>
-                            <TextBlock Text="  20"
-                                       FontFamily="{StaticResource Kantumruy}" FontSize="10"
-                                       Foreground="{StaticResource TextSecondary}"
-                                       VerticalAlignment="Center"/>
+                                       FontFamily="{StaticResource SmallTitleFont}" FontSize="13" FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextPrimary}" VerticalAlignment="Center"/>
+                            <Border CornerRadius="4" Background="{StaticResource DividorColor}"
+                                    Padding="5,2" Margin="7,0,0,0" VerticalAlignment="Center">
+                                <TextBlock Text="25" FontFamily="{StaticResource Kantumruy}" FontSize="9"
+                                           Foreground="{StaticResource TextSecondary}"/>
+                            </Border>
                         </StackPanel>
 
-                        <!-- Title bar: Pin + Close only -->
+                        <!-- Right: Pin + Close -->
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                             <StackPanel.Resources>
                                 <Style TargetType="controls:WindowControlButton">
                                     <Setter Property="FillColor" Value="{StaticResource TextSecondary}"/>
                                     <Setter Property="GlowColor" Value="{StaticResource AccentColor}"/>
-                                    <Setter Property="Height" Value="28"/>
-                                    <Setter Property="Width" Value="26"/>
+                                    <Setter Property="Height" Value="30"/>
+                                    <Setter Property="Width" Value="28"/>
                                     <Setter Property="Scale" Value="0.7"/>
                                     <Setter Property="MaxScale" Value="0.75"/>
                                 </Style>
                             </StackPanel.Resources>
-
                             <controls:WindowControlButton x:Name="Pin" Click="PinClick"
                                                           PathData="{StaticResource Pin}"/>
                             <controls:WindowControlButton Click="ExitButtonClick"
@@ -120,17 +125,16 @@
                 <Line X1="0" X2="290" Stroke="{StaticResource DividorColor}" StrokeThickness="1"/>
 
                 <!-- ═══ TOP BLOCK: Clock + Speed + Active module chips ═══ -->
-                <Border x:Name="TopBlock" Background="{StaticResource LightBackColor}" Padding="14,10,14,10">
+                <Border x:Name="TopBlock" Background="{StaticResource LightBackColor}" Padding="14,8,14,8">
                     <StackPanel>
                         <Grid>
                             <Label x:Name="CurrentTime" Content="00:00:00"
-                                   Padding="0" Margin="0,-6,0,-6"
+                                   Padding="0"
                                    HorizontalAlignment="Left" VerticalAlignment="Center"
-                                   FontFamily="{StaticResource BigTextFont}" FontSize="42"
+                                   FontFamily="{StaticResource BigTextFont}" FontSize="22"
                                    Foreground="{StaticResource AccentColor}"/>
                             <controls:ConnectionInfoPanel x:Name="Speed"
-                                                          HorizontalAlignment="Right" VerticalAlignment="Center"
-                                                          Margin="0,4,0,0"/>
+                                                          HorizontalAlignment="Right" VerticalAlignment="Center"/>
                         </Grid>
 
                         <ItemsControl x:Name="EnabledModules" ItemsSource="{Binding Source={StaticResource ModulesViewSource}}" Margin="0,4,0,-2">
@@ -152,30 +156,28 @@
 
                 <Line X1="0" X2="290" Stroke="{StaticResource DividorColor}" StrokeThickness="1"/>
 
-                <!-- ═══ MODULE TAB STRIP ═══ -->
-                <Border Background="{StaticResource BackColor}" Padding="6,5">
+                <!-- ═══ MODULE TABS (InfinClient style: text + underline indicator) ═══ -->
+                <Border Background="{StaticResource FancyColor}" Padding="0">
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                         <StackPanel.Resources>
                             <Style TargetType="Button">
                                 <Setter Property="Background" Value="Transparent"/>
                                 <Setter Property="Foreground" Value="{StaticResource TextSecondary}"/>
                                 <Setter Property="BorderThickness" Value="0"/>
-                                <Setter Property="Padding" Value="10,3"/>
-                                <Setter Property="Margin" Value="2,0"/>
                                 <Setter Property="Cursor" Value="Hand"/>
                                 <Setter Property="FontFamily" Value="{StaticResource SmallTitleFont}"/>
-                                <Setter Property="FontSize" Value="13"/>
-                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                <Setter Property="FontSize" Value="12"/>
                                 <Setter Property="Template">
                                     <Setter.Value>
                                         <ControlTemplate TargetType="Button">
-                                            <Border x:Name="bd" Background="{TemplateBinding Background}"
-                                                    Padding="{TemplateBinding Padding}" CornerRadius="5">
-                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                            </Border>
+                                            <StackPanel Orientation="Vertical">
+                                                <ContentPresenter HorizontalAlignment="Center" Margin="10,7,10,4"/>
+                                                <Border x:Name="UnderLine" Height="2"
+                                                        Background="{StaticResource AccentColor}" Opacity="0"/>
+                                            </StackPanel>
                                             <ControlTemplate.Triggers>
                                                 <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter TargetName="bd" Property="Background" Value="{StaticResource DividorColor}"/>
+                                                    <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
                                                 </Trigger>
                                             </ControlTemplate.Triggers>
                                         </ControlTemplate>
