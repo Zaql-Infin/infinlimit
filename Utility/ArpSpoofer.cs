@@ -32,9 +32,12 @@ namespace InfinLimit.Utility
         public bool IsActive { get; private set; }
         public string StatusMessage { get; private set; } = "Idle";
 
-        // Enables IP forwarding unconditionally — called even when ARP spoofing isn't needed
-        // (e.g. PS4 connected through PC hotspot, where traffic flows naturally via ICS).
-        public static void EnsureIpForwarding() => EnableIpForwarding(GetLocalIP());
+        // Enables IP forwarding on all real (non-virtual) NICs unconditionally.
+        // Called even when ARP spoofing isn't needed (e.g. PS4 on PC hotspot via ICS).
+        public static void EnsureIpForwarding()
+        {
+            RunPowerShell("Get-NetIPInterface -AddressFamily IPv4 | Where-Object { $_.InterfaceAlias -notmatch 'Loopback|vEthernet|TAP|VirtualBox|VMware' } | Set-NetIPInterface -Forwarding Enabled");
+        }
 
         public bool Start(List<string> consoleIps)
         {
@@ -138,26 +141,95 @@ namespace InfinLimit.Utility
 
         // ── Setup ────────────────────────────────────────────────────────────
 
+        // Returns true if a NIC looks like a software/virtual adapter that should
+        // not be used for ARP spoofing (VirtualBox, VMware, Hyper-V, VPN, TAP).
+        private static bool IsVirtualAdapter(NetworkInterface ni)
+        {
+            var desc = ni.Description ?? "";
+            var name = ni.Name ?? "";
+            return ni.NetworkInterfaceType == NetworkInterfaceType.Tunnel
+                || desc.Contains("VirtualBox",  StringComparison.OrdinalIgnoreCase)
+                || desc.Contains("VMware",       StringComparison.OrdinalIgnoreCase)
+                || desc.Contains("Hyper-V",      StringComparison.OrdinalIgnoreCase)
+                || desc.Contains("TAP-Windows",  StringComparison.OrdinalIgnoreCase)
+                || desc.Contains("Loopback",     StringComparison.OrdinalIgnoreCase)
+                || desc.Contains("WAN Miniport", StringComparison.OrdinalIgnoreCase)
+                || name.Contains("vEthernet",    StringComparison.OrdinalIgnoreCase);
+        }
+
         private bool TrySetup(List<string> consoleIps)
         {
-            var localIp = GetLocalIP();
-            Logger.Info($"ArpSpoofer: local IP = {localIp}");
-            if (localIp == null) { StatusMessage = "ARP failed: no local IP"; return false; }
+            // Pick the NIC whose IP shares a /24 subnet with at least one console IP.
+            // Without this, GetLocalIP() can return a VirtualBox/Hyper-V/VPN adapter
+            // that's enumerated before the real Ethernet NIC, sending ARP on the wrong
+            // interface and breaking all interception.
+            NetworkInterface? localNic = null;
+            string? localIp = null;
+            IPAddress? gateway = null;
 
-            var gateway = GetDefaultGateway();
+            foreach (var ip in consoleIps)
+            {
+                var parts = ip.Split('.');
+                if (parts.Length != 4) continue;
+                var subnet24 = $"{parts[0]}.{parts[1]}.{parts[2]}.";
+
+                foreach (var ni in NetworkInterface.GetAllNetworkInterfaces())
+                {
+                    if (ni.OperationalStatus != OperationalStatus.Up) continue;
+                    if (ni.NetworkInterfaceType == NetworkInterfaceType.Loopback) continue;
+                    if (IsVirtualAdapter(ni)) continue;
+
+                    foreach (var ua in ni.GetIPProperties().UnicastAddresses)
+                    {
+                        if (ua.Address.AddressFamily != AddressFamily.InterNetwork) continue;
+                        if (!ua.Address.ToString().StartsWith(subnet24)) continue;
+
+                        localNic = ni;
+                        localIp  = ua.Address.ToString();
+                        gateway  = ni.GetIPProperties().GatewayAddresses
+                            .Where(g => g.Address.AddressFamily == AddressFamily.InterNetwork
+                                       && !g.Address.ToString().StartsWith("169."))
+                            .Select(g => g.Address)
+                            .FirstOrDefault();
+                        break;
+                    }
+                    if (localNic != null) break;
+                }
+                if (localNic != null) break;
+            }
+
+            // Fallback: first non-virtual non-loopback NIC
+            if (localNic == null)
+            {
+                Logger.Warning("ArpSpoofer: no NIC shares console subnet — falling back to first physical NIC");
+                foreach (var ni in NetworkInterface.GetAllNetworkInterfaces())
+                {
+                    if (ni.OperationalStatus != OperationalStatus.Up) continue;
+                    if (ni.NetworkInterfaceType == NetworkInterfaceType.Loopback) continue;
+                    if (IsVirtualAdapter(ni)) continue;
+                    foreach (var ua in ni.GetIPProperties().UnicastAddresses)
+                    {
+                        if (ua.Address.AddressFamily != AddressFamily.InterNetwork) continue;
+                        localNic = ni;
+                        localIp  = ua.Address.ToString();
+                        gateway  = ni.GetIPProperties().GatewayAddresses
+                            .Where(g => g.Address.AddressFamily == AddressFamily.InterNetwork
+                                       && !g.Address.ToString().StartsWith("169."))
+                            .Select(g => g.Address)
+                            .FirstOrDefault();
+                        break;
+                    }
+                    if (localNic != null) break;
+                }
+            }
+
+            Logger.Info($"ArpSpoofer: local IP = {localIp}");
+            if (localIp == null || localNic == null) { StatusMessage = "ARP failed: no local IP"; return false; }
+
             Logger.Info($"ArpSpoofer: gateway = {gateway}");
             if (gateway == null) { StatusMessage = "ARP failed: no gateway"; return false; }
             _gatewayIpBytes = gateway.GetAddressBytes();
 
-            // Get local NIC MAC
-            var localNic = NetworkInterface.GetAllNetworkInterfaces().FirstOrDefault(n =>
-                n.OperationalStatus == OperationalStatus.Up
-                && n.NetworkInterfaceType != NetworkInterfaceType.Loopback
-                && n.GetIPProperties().UnicastAddresses.Any(a =>
-                    a.Address.AddressFamily == AddressFamily.InterNetwork
-                    && a.Address.ToString() == localIp));
-
-            if (localNic == null) { StatusMessage = "ARP failed: no NIC found"; return false; }
             _localMac = localNic.GetPhysicalAddress().GetAddressBytes();
             Logger.Info($"ArpSpoofer: local MAC = {MacToString(_localMac)}");
 
@@ -478,6 +550,16 @@ namespace InfinLimit.Utility
 
         private static string GetLocalIP()
         {
+            foreach (var ni in NetworkInterface.GetAllNetworkInterfaces())
+            {
+                if (ni.OperationalStatus != OperationalStatus.Up) continue;
+                if (ni.NetworkInterfaceType == NetworkInterfaceType.Loopback) continue;
+                if (IsVirtualAdapter(ni)) continue;
+                foreach (var ua in ni.GetIPProperties().UnicastAddresses)
+                    if (ua.Address.AddressFamily == AddressFamily.InterNetwork)
+                        return ua.Address.ToString();
+            }
+            // Last resort — include virtual adapters
             foreach (var ni in NetworkInterface.GetAllNetworkInterfaces())
             {
                 if (ni.OperationalStatus != OperationalStatus.Up) continue;
