@@ -344,9 +344,15 @@ namespace InfinLimit.Interception.Modules
             WinDivert? divert = null;
             try
             {
-                const string filter = "ip and tcp and inbound and " +
-                    "((tcp.SrcPort >= 7500 and tcp.SrcPort <= 7509) or (tcp.DstPort >= 7500 and tcp.DstPort <= 7509))";
-                divert = new WinDivert(filter, WinDivertLayer.Network, priority: 50);
+                // Must use Forward layer — Network layer only captures traffic to/from the
+                // PC itself, not traffic being ARP-routed through the PC from the console.
+                var enabled = Devices.Where(d => d.IP != null && d.Enabled).ToList();
+                if (enabled.Count == 0) return;
+                var ipClauses = enabled.SelectMany(d => new[] { $"ip.DstAddr == {d.IP}", $"ip.SrcAddr == {d.IP}" });
+                var ipPart = "(" + string.Join(" or ", ipClauses) + ")";
+                const string portPart = "(tcp and ((tcp.SrcPort >= 7500 and tcp.SrcPort <= 7509) or (tcp.DstPort >= 7500 and tcp.DstPort <= 7509)))";
+                var filter = $"ip and {ipPart} and {portPart}";
+                divert = new WinDivert(filter, WinDivertLayer.Forward, priority: 50);
                 _ = Task.Run(() => DrainPort2Async(divert, ct), ct);
 
                 while (!ct.IsCancellationRequested)
