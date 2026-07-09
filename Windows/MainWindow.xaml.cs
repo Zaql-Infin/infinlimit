@@ -492,11 +492,13 @@ namespace InfinLimit
                     : "No keybind";
 
                 PVE_Panel.Visibility = PveInCB.Visibility = Visibility.Visible;
+                ActivationGrid.Visibility = Visibility.Collapsed;
             }
             else
             {
                 kbd.Content = "Keybind";
                 ActivationGrid.ToolTip = null;
+                ActivationGrid.Visibility = Visibility.Visible;
                 PVE_Panel.Visibility = PveInCB.Visibility = Visibility.Collapsed;
             }
 
