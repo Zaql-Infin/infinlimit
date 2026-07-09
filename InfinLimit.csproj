@@ -38,10 +38,12 @@
     <None Remove="Windows\Assets\KantumruyPro-Regular.ttf" />
     <None Remove="Windows\Assets\snow.png" />
     <None Remove="Windows\Converters\PincushionDistortion.ps" />
+    <None Remove="Windows\Assets\background.jpg" />
   </ItemGroup>
 
   <ItemGroup>
     <Resource Include="Windows\Assets\appLogo.ico" />
+    <Resource Include="Windows\Assets\background.jpg" />
     <Resource Include="Windows\Assets\KantumruyPro-Regular.ttf">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Resource>

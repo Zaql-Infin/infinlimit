@@ -21,20 +21,22 @@
             <FontFamily x:Key="SmallTitleFont">Bahnschrift Light</FontFamily>
             <FontFamily x:Key="BigTextFont">Microsoft JhengHei UI Light</FontFamily>
 
-            <!-- Destiny 2 color palette -->
-            <Color x:Key="Accent">#C8A951</Color>
-            <SolidColorBrush x:Key="TitleColor" Color="#C8A951"/>
-            <SolidColorBrush x:Key="AccentColor" Color="#C8A951"/>
-            <SolidColorBrush x:Key="FancyColor" Color="#0D0E15"/>
-            <SolidColorBrush x:Key="InactiveColor" Color="#1E1F2E"/>
-            <SolidColorBrush x:Key="BackColor" Color="#0B0C12"/>
-            <SolidColorBrush x:Key="LightBackColor" Color="#13141E"/>
-            <SolidColorBrush x:Key="DividorColor" Color="#252638"/>
+            <!-- Dark Limiter color palette -->
+            <Color x:Key="Accent">#6a6aff</Color>
+            <Color x:Key="UiAccentColor">#6a6aff</Color>
+            <SolidColorBrush x:Key="TitleColor" Color="#6a6aff"/>
+            <SolidColorBrush x:Key="AccentColor" Color="#6a6aff"/>
+            <SolidColorBrush x:Key="UiAccent" Color="#6a6aff"/>
+            <SolidColorBrush x:Key="FancyColor" Color="#0A0A16"/>
+            <SolidColorBrush x:Key="InactiveColor" Color="#18182E"/>
+            <SolidColorBrush x:Key="BackColor" Color="#0D0D1A"/>
+            <SolidColorBrush x:Key="LightBackColor" Color="#11112A"/>
+            <SolidColorBrush x:Key="DividorColor" Color="#1E1E3C"/>
 
             <SolidColorBrush x:Key="Upload" Color="#E85D5D"/>
-            <SolidColorBrush x:Key="Download" Color="#C8A951"/>
+            <SolidColorBrush x:Key="Download" Color="#6a6aff"/>
             <SolidColorBrush x:Key="TextPrimary" Color="#F0EEE8"/>
-            <SolidColorBrush x:Key="TextSecondary" Color="#7A7A8A"/>
+            <SolidColorBrush x:Key="TextSecondary" Color="#8A8AAA"/>
 
             <!-- Math Converter -->
             <local:MathConverter x:Key="Math" />
@@ -101,40 +103,39 @@
                     <Setter.Value>
                         <ControlTemplate TargetType="Window">
                             <Grid x:Name="mainddd" MouseDown="BorderMouseDown">
-                                <Border x:Name="backg" BorderThickness="1" BorderBrush="#2A2415"
+                                <Border x:Name="backg" BorderThickness="1" BorderBrush="#1E1E3A"
                                         CornerRadius="14">
                                     <Border.Background>
-                                        <SolidColorBrush Color="#0B0C12" Opacity="0.98"/>
+                                        <SolidColorBrush Color="#0D0D1A" Opacity="0.92"/>
                                     </Border.Background>
                                 </Border>
-                                <!-- Subtle top accent line -->
-                                <!-- D2 gold top accent bar -->
+                                <!-- Blue-purple top accent line -->
                                 <Border VerticalAlignment="Top" Height="2" CornerRadius="14,14,0,0" Margin="1,1,1,0">
                                     <Border.Background>
                                         <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
                                             <GradientStop Color="Transparent" Offset="0"/>
-                                            <GradientStop Color="#C8A951" Offset="0.3"/>
-                                            <GradientStop Color="#E8C96C" Offset="0.5"/>
-                                            <GradientStop Color="#C8A951" Offset="0.7"/>
+                                            <GradientStop Color="#6a6aff" Offset="0.3"/>
+                                            <GradientStop Color="#8888ff" Offset="0.5"/>
+                                            <GradientStop Color="#6a6aff" Offset="0.7"/>
                                             <GradientStop Color="Transparent" Offset="1"/>
                                         </LinearGradientBrush>
                                     </Border.Background>
                                 </Border>
-                                <!-- D2 subtle corner diamond accents -->
+                                <!-- Blue-purple corner accents -->
                                 <Border VerticalAlignment="Top" HorizontalAlignment="Left" Width="14" Height="14"
-                                        Margin="1,1,0,0" CornerRadius="14,0,0,0" Opacity="0.4">
+                                        Margin="1,1,0,0" CornerRadius="14,0,0,0" Opacity="0.35">
                                     <Border.Background>
                                         <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                            <GradientStop Color="#C8A951" Offset="0"/>
+                                            <GradientStop Color="#6a6aff" Offset="0"/>
                                             <GradientStop Color="Transparent" Offset="1"/>
                                         </LinearGradientBrush>
                                     </Border.Background>
                                 </Border>
                                 <Border VerticalAlignment="Top" HorizontalAlignment="Right" Width="14" Height="14"
-                                        Margin="0,1,1,0" CornerRadius="0,14,0,0" Opacity="0.4">
+                                        Margin="0,1,1,0" CornerRadius="0,14,0,0" Opacity="0.35">
                                     <Border.Background>
                                         <LinearGradientBrush StartPoint="1,0" EndPoint="0,1">
-                                            <GradientStop Color="#C8A951" Offset="0"/>
+                                            <GradientStop Color="#6a6aff" Offset="0"/>
                                             <GradientStop Color="Transparent" Offset="1"/>
                                         </LinearGradientBrush>
                                     </Border.Background>

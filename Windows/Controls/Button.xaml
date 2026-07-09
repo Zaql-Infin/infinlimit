@@ -16,10 +16,10 @@
         <Viewbox HorizontalAlignment="Center">
             <TextBlock x:Name="ButtonText"
                        Margin="14,3"
-                       Text="{Binding Text}" 
-                       Foreground="DarkRed" 
+                       Text="{Binding Text}"
+                       Foreground="{Binding Foreground}"
                        VerticalAlignment="Center" HorizontalAlignment="Center"
-                       FontFamily="Bahnschrift Light" 
+                       FontFamily="Bahnschrift Light"
                        Opacity="1"/>
         </Viewbox>
         

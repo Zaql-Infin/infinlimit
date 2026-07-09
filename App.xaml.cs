@@ -1,5 +1,9 @@
 ﻿using Hardcodet.Wpf.TaskbarNotification.Interop;
 
+using InfinLimit.Utility;
+
+using System.Threading.Tasks;
+
 using System;
 using System.Diagnostics;
 using System.Drawing;
@@ -33,10 +37,59 @@ namespace InfinLimit
 
             private void Application_Startup(object sender, StartupEventArgs e)
             {
+                EnsureNpcap();
+                ThemeManager.Initialize();
                 var checker = new IdentityChecker();
                 checker.CheckSubs();
                 var main = new MainWindow(checker);
                 main.Show();
+
+                // Background update check — runs after window opens so it doesn't delay startup
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        if (!await Updater.IsUpdateAvailableAsync()) return;
+
+                        var result = Dispatcher.Invoke(() =>
+                            System.Windows.MessageBox.Show(
+                                "A new version of InfinLimit is available.\n\nInstall now and restart?",
+                                "Update Available",
+                                System.Windows.MessageBoxButton.YesNo,
+                                System.Windows.MessageBoxImage.Information));
+
+                        if (result == System.Windows.MessageBoxResult.Yes)
+                            await Updater.DownloadAndApplyAsync();
+                    }
+                    catch { }
+                });
+            }
+
+            private static void EnsureNpcap()
+            {
+                bool installed = System.IO.File.Exists(@"C:\Windows\System32\Npcap\wpcap.dll") ||
+                    Microsoft.Win32.Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Npcap") != null;
+                if (installed) return;
+
+                var result = System.Windows.Forms.MessageBox.Show(
+                    "Npcap is required for the Console Limiter (ARP spoofing).\nInstall it now?",
+                    "Npcap Required",
+                    System.Windows.Forms.MessageBoxButtons.YesNo,
+                    System.Windows.Forms.MessageBoxIcon.Question);
+
+                if (result != System.Windows.Forms.DialogResult.Yes) return;
+
+                var installer = System.IO.Path.Combine(
+                    System.AppDomain.CurrentDomain.BaseDirectory, "npcap-installer.exe");
+                if (!System.IO.File.Exists(installer)) return;
+
+                var psi = new System.Diagnostics.ProcessStartInfo(installer, "/S /winpcap_mode=yes")
+                {
+                    Verb = "runas",
+                    UseShellExecute = true
+                };
+                var proc = System.Diagnostics.Process.Start(psi);
+                proc?.WaitForExit();
             }
             #region winBlur
 
@@ -144,14 +197,36 @@ namespace InfinLimit
         }
 
 
+        private static ImageBrush _backgroundBrush;
+
         private void TransparentWindowLoaded(object sender, RoutedEventArgs e)
         {
             if (sender is Window window)
             {
                 EnableBlur(window);
                 window.Activated += Window_Activated;
-                window.Deactivated += Window_Deactivated; 
-                //EnableRoundedCorners(window);
+                window.Deactivated += Window_Deactivated;
+
+                if (window.Template.FindName("backg", window) is Border backg)
+                {
+                    if (_backgroundBrush == null)
+                    {
+                        try
+                        {
+                            var img = new BitmapImage(
+                                new Uri("pack://application:,,,/Windows/Assets/background.jpg"));
+                            img.Freeze();
+                            _backgroundBrush = new ImageBrush(img)
+                            {
+                                Stretch = Stretch.UniformToFill,
+                                Opacity = 0.4
+                            };
+                        }
+                        catch { }
+                    }
+                    if (_backgroundBrush != null)
+                        backg.Background = _backgroundBrush;
+                }
             }
         }
 

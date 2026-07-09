@@ -23,6 +23,8 @@ namespace InfinLimit.Models
 
     public class Settings
     {
+        public string? AccentHex { get; set; } = null;
+
         public string? Tracker_BungieName { get; set; } = null;
         public bool Tracker_CountRaids { get; set; } = true;
         public bool Tracker_CountDungeons { get; set; } = true;

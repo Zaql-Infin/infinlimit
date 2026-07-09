@@ -23,8 +23,8 @@ namespace InfinLimit.Interception.Modules
             
             // Initialize rate limiting settings
             RateLimitingEnabled = Config.GetNamed(Name).GetSettings<bool>("RateLimitingEnabled");
-            TargetBitsPerSecond = Config.GetNamed(Name).GetSettings<long>("TargetBitsPerSecond");
-            if (TargetBitsPerSecond == 0) TargetBitsPerSecond = 1000000; // Default 1 Mbps
+            TargetBytesPerSecond = Config.GetNamed(Name).GetSettings<long>("TargetBytesPerSecond");
+            if (TargetBytesPerSecond == 0) TargetBytesPerSecond = 100;
             
             // Initialize packet release timer (fires every 10ms for smooth packet release)
             packetReleaseTimer = new Timer(ProcessPacketQueue, null, TimeSpan.Zero, TimeSpan.FromMilliseconds(10));
@@ -35,15 +35,11 @@ namespace InfinLimit.Interception.Modules
             IsActivated = !IsActivated;
             if (!IsActivated)
             {
-                // Clear the rate limiting queue when deactivated
-                if (RateLimitingEnabled)
+                while (packetQueue.TryDequeue(out var _)) { }
+                lock (rateLimitLock)
                 {
-                    while (packetQueue.TryDequeue(out var _)) { } // Clear all queued packets
-                    lock (rateLimitLock)
-                    {
-                        totalBitsTransferred = 0;
-                        lastPacketTime = DateTime.Now;
-                    }
+                    totalBitsTransferred = 0;
+                    lastPacketTime = DateTime.Now;
                 }
                 
                 Task.Run(async () =>
@@ -63,7 +59,7 @@ namespace InfinLimit.Interception.Modules
                                 p.Delayed = false;
                                 p.AckNum = 0; // let storepacket assign highest
                                 p.SourceProvider.StorePacket(p);
-                                if (Buffer && !p.Flags.HasFlag(TcpFlags.FIN) && !p.Flags.HasFlag(TcpFlags.RST)) await p.SourceProvider.SendPacket(p, true);
+                                if ((Buffer || ForceBufferOn) && !p.Flags.HasFlag(TcpFlags.FIN) && !p.Flags.HasFlag(TcpFlags.RST)) await p.SourceProvider.SendPacket(p, true);
 
                                 Logger.Debug($"{Name}: Seq dist {TcpReordering.Cache[addr].Location[FlagType.Remote].HighSeq - p.SeqNum}");
                             }
@@ -80,76 +76,58 @@ namespace InfinLimit.Interception.Modules
             }
             else
             {
-                // Reset rate limiting counters when activated
-                if (RateLimitingEnabled)
+                lock (rateLimitLock)
                 {
-                    lock (rateLimitLock)
-                    {
-                        totalBitsTransferred = 0;
-                        lastPacketTime = DateTime.Now;
-                    }
+                    totalBitsTransferred = 0;
+                    lastPacketTime = DateTime.Now;
                 }
             }
         }
 
         private void ProcessPacketQueue(object state)
         {
-            if (!RateLimitingEnabled || isProcessingQueue || !IsActivated)
+            if (!RateLimitingEnabled || ForceRateLimitOff || isProcessingQueue || !IsActivated)
                 return;
 
             isProcessingQueue = true;
-            
             try
             {
-                while (packetQueue.TryDequeue(out Packet packet))
+                var now = DateTime.Now;
+                lock (rateLimitLock)
                 {
-                    lock (rateLimitLock)
+                    if ((now - lastPacketTime).TotalSeconds >= 1.0)
                     {
-                        var now = DateTime.Now;
-                        var timeSinceLastPacket = (now - lastPacketTime).TotalSeconds;
-                        
-                        // Reset counters if more than 1 second has passed (new time window)
-                        if (timeSinceLastPacket >= 1.0)
+                        totalBitsTransferred = 0;
+                        lastPacketTime = now;
+                    }
+
+                    if (TargetBytesPerSecond <= 0) TargetBytesPerSecond = 100;
+
+                    Packet peek;
+                    while (packetQueue.TryPeek(out peek)
+                        && (totalBitsTransferred + peek.Length <= TargetBytesPerSecond || totalBitsTransferred <= 0))
+                    {
+                        if (!packetQueue.TryDequeue(out Packet packet)) break;
+                        totalBitsTransferred += packet.Length;
+                        double delayFraction = (double)packet.Length / TargetBytesPerSecond;
+                        try
                         {
-                            totalBitsTransferred = 0;
-                            lastPacketTime = now;
+                            packet.CreatedAt = DateTime.Now;
+                            packet.Delayed = true;
+                            packet.AckNum = 0;
+                            packet.SourceProvider.StorePacket(packet);
+                            packet.SourceProvider.DelayPacket(packet, TimeSpan.FromSeconds(delayFraction));
                         }
-                        
-                        var packetBits = packet.Length * 8; // Convert bytes to bits
-                        var projectedTotal = totalBitsTransferred + packetBits;
-                        var allowedBitsInCurrentSecond = (long)(TargetBitsPerSecond * Math.Min(1.0, timeSinceLastPacket + 0.01)); // Small buffer
-                        
-                        if (projectedTotal <= allowedBitsInCurrentSecond)
+                        catch (Exception e)
                         {
-                            // Allow this packet and update counters
-                            totalBitsTransferred = projectedTotal;
-                            
-                            // Process the packet by sending it through the original flow
-                            Task.Run(async () =>
-                            {
-                                try
-                                {
-                                    packet.CreatedAt = DateTime.Now;
-                                    packet.Delayed = false;
-                                    packet.AckNum = 0; // let storepacket assign highest
-                                    packet.SourceProvider.StorePacket(packet);
-                                    if (Buffer && !packet.Flags.HasFlag(TcpFlags.FIN) && !packet.Flags.HasFlag(TcpFlags.RST))
-                                        await packet.SourceProvider.SendPacket(packet, true);
-                                }
-                                catch (Exception e)
-                                {
-                                    Logger.Error(e, "Rate limiting packet processing");
-                                }
-                            });
-                        }
-                        else
-                        {
-                            // Put the packet back in the queue to try again later
-                            packetQueue.Enqueue(packet);
-                            break; // Exit loop to avoid processing more packets this cycle
+                            Logger.Error(e, "Rate limiting packet processing");
                         }
                     }
                 }
+            }
+            catch (Exception e)
+            {
+                Logger.Error(e, "ProcessPacketQueue");
             }
             finally
             {
@@ -158,12 +136,14 @@ namespace InfinLimit.Interception.Modules
         }
 
         public static bool Buffer;
+        public static bool ForceBufferOn;
         public static bool RateLimitingEnabled;
-        public static long TargetBitsPerSecond;
+        public static bool ForceRateLimitOff;
+        public static long TargetBytesPerSecond;
         
         // Rate limiting tracking variables
         private DateTime lastPacketTime = DateTime.Now;
-        private long totalBitsTransferred = 0;
+        private long totalBitsTransferred = 0; // tracks bytes per second window
         private readonly object rateLimitLock = new object();
         
         // Packet queue for smooth rate limiting
@@ -179,15 +159,16 @@ namespace InfinLimit.Interception.Modules
 
             if (p.Outbound || p.Length == 0) return true;
 
+            // 73-byte packets are keepalives — always pass through
+            if (p.Length == 73) return true;
+
             // If rate limiting is enabled, queue the packet for controlled release
-            if (RateLimitingEnabled)
+            if (RateLimitingEnabled && !ForceRateLimitOff)
             {
-                // Add packet to queue for rate-limited processing
                 packetQueue.Enqueue(p);
-                return false; // Block the original packet, it will be processed through the queue
+                return false;
             }
 
-            // Original blocking behavior when rate limiting is disabled
             return false;
         }
         

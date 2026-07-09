@@ -1,148 +1,148 @@
-using SharpCompress.Archives;
-using SharpCompress.Archives.Zip;
-using SharpCompress.Readers;
-
 using System;
 using System.Diagnostics;
 using System.IO;
-using System.IO.Compression;
-using System.Net;
 using System.Net.Http;
-using System.Security.Cryptography;
+using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows;
-
-using ZipArchive = SharpCompress.Archives.Zip.ZipArchive;
 
 namespace InfinLimit.Utility
 {
     public static class Updater
     {
-        public const int Version = 1;
+        // ── Fill these in before distributing ──────────────────────────────────
+        //   1. Push a GitHub release tagged "v{int}" (e.g. v3, v4, v5 …)
+        //   2. Attach InfinLimit.exe as a release asset — that's it.
+        //   3. Bump Version here each time you build so existing clients know
+        //      a newer build is available.
+        public const int Version = 2;
         public const string VersionString = "2.0.0";
 
-        // TODO: Set this to your manifest URL when you're ready
-        private const string ManifestUrl = "";
+        public const string RepoOwner = "Zaql-Infin";
+        public const string RepoName  = "infinlimit";
+        // ───────────────────────────────────────────────────────────────────────
 
-        private static Manifest _manifest;
         private static readonly HttpClient _http = new();
 
-        public static async Task<bool> IsLatestAsync()
+        static Updater()
         {
-            if (string.IsNullOrEmpty(ManifestUrl))
-                return true;
-
-            try
-            {
-                var json = await _http.GetStringAsync(ManifestUrl);
-                if (json.Length < 5) return true;
-                _manifest = JsonSerializer.Deserialize<Manifest>(json);
-                return _manifest == null || _manifest.Version <= Version;
-            }
-            catch (Exception e)
-            {
-                ExtraLogger.Error(e);
-                return true;
-            }
+            _http.DefaultRequestHeaders.UserAgent.Add(
+                new ProductInfoHeaderValue("InfinLimit", VersionString));
         }
 
-        public static bool IsLatest()
+        private static string _pendingDownloadUrl;
+
+        /// <summary>Returns true if a newer release exists on GitHub.</summary>
+        public static async Task<bool> IsUpdateAvailableAsync()
         {
-            if (string.IsNullOrEmpty(ManifestUrl))
-                return true;
+            if (string.IsNullOrEmpty(RepoOwner) || string.IsNullOrEmpty(RepoName))
+                return false;
 
             try
             {
-                using var wc = new WebClient();
-                var json = wc.DownloadString(ManifestUrl);
-                if (json.Length < 5) return true;
-                _manifest = JsonSerializer.Deserialize<Manifest>(json);
-                return _manifest == null || _manifest.Version <= Version;
-            }
-            catch (Exception e)
-            {
-                ExtraLogger.Error(e);
-                return true;
-            }
-        }
+                var url  = $"https://api.github.com/repos/{RepoOwner}/{RepoName}/releases/latest";
+                var json = await _http.GetStringAsync(url);
+                using var doc  = JsonDocument.Parse(json);
+                var root = doc.RootElement;
 
-        public static async Task<bool> UpdateAsync(IProgress<int> progress = null)
-        {
-            if (_manifest == null) return false;
+                // tag like "v3" or "v2.1.0" — compare leading integer only
+                var tag = root.GetProperty("tag_name").GetString()?.TrimStart('v') ?? "";
+                var part = tag.Split('.')[0];
+                if (!int.TryParse(part, out int remote) || remote <= Version)
+                    return false;
 
-            var tempZip = Path.Combine(Path.GetTempPath(), "infinlimit_update.zip");
-            var tempDir = Path.Combine(Path.GetTempPath(), "infinlimit_update");
-
-            try
-            {
-                using var wc = new WebClient();
-                if (progress != null)
-                    wc.DownloadProgressChanged += (s, e) => progress.Report(e.ProgressPercentage);
-
-                await wc.DownloadFileTaskAsync(_manifest.DownloadUrl, tempZip);
-                Directory.CreateDirectory(tempDir);
-
-                try
+                // find "InfinLimit.exe" in the release assets
+                foreach (var asset in root.GetProperty("assets").EnumerateArray())
                 {
-                    ZipFile.ExtractToDirectory(tempZip, tempDir, true);
-                }
-                catch (InvalidDataException)
-                {
-                    using var fs = File.OpenRead(tempZip);
-                    using var zip = ZipArchive.Open(fs);
-                    zip.WriteToDirectory(tempDir, new SharpCompress.Common.ExtractionOptions()
+                    var name = asset.GetProperty("name").GetString() ?? "";
+                    if (name.Equals("InfinLimit.exe", StringComparison.OrdinalIgnoreCase))
                     {
-                        Overwrite = true,
-                        ExtractFullPath = true
-                    });
+                        _pendingDownloadUrl = asset.GetProperty("browser_download_url").GetString();
+                        return !string.IsNullOrEmpty(_pendingDownloadUrl);
+                    }
                 }
-
-                LaunchPatcher(tempDir);
-                return true;
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                ExtraLogger.Error(e);
+                ExtraLogger.Error(ex);
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Downloads the update exe then hands off to the patcher bat and exits.
+        /// </summary>
+        public static async Task<bool> DownloadAndApplyAsync(IProgress<int> progress = null)
+        {
+            if (string.IsNullOrEmpty(_pendingDownloadUrl))
+                return false;
+
+            var tempExe = Path.Combine(Path.GetTempPath(), "InfinLimit_update.exe");
+
+            try
+            {
+                using var resp = await _http.GetAsync(
+                    _pendingDownloadUrl, HttpCompletionOption.ResponseHeadersRead);
+                resp.EnsureSuccessStatusCode();
+
+                var total = resp.Content.Headers.ContentLength ?? 0L;
+                var buf   = new byte[81920];
+                long done = 0;
+
+                await using var src = await resp.Content.ReadAsStreamAsync();
+                await using var dst = File.Create(tempExe);
+
+                int read;
+                while ((read = await src.ReadAsync(buf)) > 0)
+                {
+                    await dst.WriteAsync(buf.AsMemory(0, read));
+                    done += read;
+                    if (total > 0) progress?.Report((int)(done * 100 / total));
+                }
+            }
+            catch (Exception ex)
+            {
+                ExtraLogger.Error(ex);
                 return false;
             }
+
+            LaunchPatcher(tempExe);
+            return true;
         }
 
-        // Legacy sync API kept for StartupProgressBar compatibility
-        public static bool Update() => UpdateAsync().GetAwaiter().GetResult();
-        public static bool IsProtected() => false;
-        public static void RunPatcher(string args = null) { }
-
-        private static void LaunchPatcher(string updateDir)
+        private static void LaunchPatcher(string newExe)
         {
-            var exePath = Process.GetCurrentProcess().MainModule.FileName;
-            var patcherScript = Path.Combine(Path.GetTempPath(), "infinlimit_patch.bat");
+            var current = Process.GetCurrentProcess().MainModule!.FileName;
+            var bat     = Path.Combine(Path.GetTempPath(), "infinlimit_patch.bat");
 
-            File.WriteAllText(patcherScript,
-                $"@echo off\r\n" +
-                $"timeout /t 2 /nobreak >nul\r\n" +
-                $"xcopy /s /y \"{updateDir}\\*\" \"{Path.GetDirectoryName(exePath)}\\\"\r\n" +
-                $"start \"\" \"{exePath}\"\r\n" +
-                $"del \"{patcherScript}\"\r\n"
+            // Wait for the current process to release the exe, copy, restart.
+            File.WriteAllText(bat,
+                "@echo off\r\n" +
+                "timeout /t 2 /nobreak >nul\r\n" +
+                ":retry\r\n" +
+                $"copy /y \"{newExe}\" \"{current}\" >nul 2>&1\r\n" +
+                "if errorlevel 1 ( timeout /t 1 /nobreak >nul & goto retry )\r\n" +
+                $"del \"{newExe}\"\r\n" +
+                $"start \"\" \"{current}\"\r\n" +
+                "del \"%~f0\"\r\n"
             );
 
             Process.Start(new ProcessStartInfo
             {
-                FileName = patcherScript,
+                FileName       = bat,
                 UseShellExecute = true,
-                WindowStyle = ProcessWindowStyle.Hidden
+                WindowStyle    = ProcessWindowStyle.Hidden
             });
 
-            Application.Current.Dispatcher.Invoke(() => Application.Current.Shutdown());
+            Application.Current.Dispatcher.Invoke(Application.Current.Shutdown);
         }
-    }
 
-    public class Manifest
-    {
-        public int Version { get; set; }
-        public string VersionString { get; set; }
-        public string DownloadUrl { get; set; }
-        public string MD5 { get; set; }
-        public string ChangeLog { get; set; }
+        // Legacy stubs kept for StartupProgressBar
+        public static bool IsProtected()  => true;
+        public static void RunPatcher(string _ = null) { }
+        public static bool Update()       => false;
+        public static bool IsLatest()     => true;
     }
 }

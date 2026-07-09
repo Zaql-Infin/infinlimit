@@ -52,9 +52,9 @@
                 Stretch="Fill"
                 Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Window}}"
                 Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Window}}"
-                Fill="Lavender"
-                Opacity="0.8"
-                Stroke="#FF476697"
+                Fill="#6a6aff"
+                Opacity="0.05"
+                Stroke="#6a6aff"
                 StrokeThickness="0.1" />
         </Canvas>
 
@@ -237,7 +237,7 @@
                                     </Style>
                                     <Style TargetType="controls:Button">
                                         <Setter Property="Background" Value="{StaticResource InactiveColor}"/>
-                                        <Setter Property="Foreground" Value="red"/>
+                                        <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
                                         <Setter Property="MaxWidth" Value="115"/>
                                         <Setter Property="CornerRadius" Value="7"/>
                                         <Setter Property="HorizontalAlignment" Value="Right"/>

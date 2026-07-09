@@ -49,6 +49,14 @@ namespace InfinLimit.Interception
             Modules.Add(new PvpModule());
             Modules.Add(new InstanceModule());
             Modules.Add(new SwapperModule());
+
+            // Ported from Dark Limiter
+            Modules.Add(new Activity_30k());
+            Modules.Add(new WeaselModule());
+            Modules.Add(new MatchmakingFilterModule());
+            Modules.Add(new FullGameModule());
+            Modules.Add(new KickModule());
+
             //Modules.Add(new TestModule());
 
 

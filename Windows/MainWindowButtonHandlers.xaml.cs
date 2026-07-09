@@ -377,7 +377,7 @@ namespace InfinLimit
         {
             if (long.TryParse(InstRateLimitTB.Text, out long value) && value > 0)
             {
-                InstanceModule.TargetBitsPerSecond = value;
+                InstanceModule.TargetBytesPerSecond = value;
                 Config.Save();
             }
         }
