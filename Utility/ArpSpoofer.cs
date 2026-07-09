@@ -26,6 +26,9 @@ namespace InfinLimit.Utility
         private readonly Dictionary<string, byte[]> _consoleIpBytes = new();
         private readonly Dictionary<string, byte[]> _consoleMacs = new();
 
+        private string _localIp = string.Empty;
+        private EventHandler? _processExitHandler;
+
         public bool IsActive { get; private set; }
         public string StatusMessage { get; private set; } = "Idle";
 
@@ -35,7 +38,10 @@ namespace InfinLimit.Utility
             {
                 Logger.Info("ArpSpoofer: starting setup");
                 if (!TrySetup(consoleIps)) return false;
-                EnableIpForwarding(GetLocalIP());
+                _localIp = GetLocalIP();
+                EnableIpForwarding(_localIp);
+                _processExitHandler = (_, __) => EmergencyCleanup();
+                AppDomain.CurrentDomain.ProcessExit += _processExitHandler;
                 // Lock in the correct gateway MAC in the PC's ARP cache so our own
                 // spoof replies can't poison the PC's routing (switch flooding risk).
                 ProtectPcArp();
@@ -60,21 +66,25 @@ namespace InfinLimit.Utility
             StatusMessage = "Idle";
             _cts?.Cancel();
 
+            if (_processExitHandler != null)
+            {
+                AppDomain.CurrentDomain.ProcessExit -= _processExitHandler;
+                _processExitHandler = null;
+            }
+
             // Snapshot state, then null _dev so the still-running spoof loop
             // falls into the null-check in SendArpReplyOn and becomes a no-op.
             // That means we can start restoration immediately without waiting
             // for _loop to exit — no more spoof packets can be sent after _dev = null.
             var dev = _dev;
             _dev = null;
+            var localIp        = _localIp;
             var consoleMacs    = new Dictionary<string, byte[]>(_consoleMacs);
             var consoleIpBytes = new Dictionary<string, byte[]>(_consoleIpBytes);
             var gwMac = (byte[])_gatewayMac.Clone();
             var gwIp  = (byte[])_gatewayIpBytes.Clone();
 
-            // Fire-and-forget: restore ARP 10× over 1 s on a background thread.
-            // IP forwarding is intentionally left ON during this window so
-            // Windows keeps forwarding console traffic natively while ARP caches
-            // on the router/console update back to the real MACs.
+            // Fire-and-forget: restore ARP 10× over 1 s, then disable IP forwarding.
             Task.Run(async () =>
             {
                 // Remove the static gateway ARP entry so Windows can refresh it dynamically.
@@ -98,6 +108,7 @@ namespace InfinLimit.Utility
                     if (i < 9) await Task.Delay(100);
                 }
 
+                DisableIpForwarding(localIp);
                 try { dev?.Close(); } catch { }
             });
         }
@@ -369,6 +380,65 @@ namespace InfinLimit.Utility
             {
                 Logger.Warning($"ArpSpoofer: IP forwarding failed: {e.Message}");
             }
+        }
+
+        private static void DisableIpForwarding(string localIp)
+        {
+            try
+            {
+                var ifAlias = GetInterfaceAlias(localIp);
+                var cmd = string.IsNullOrEmpty(ifAlias)
+                    ? "Get-NetIPInterface -AddressFamily IPv4 | Set-NetIPInterface -Forwarding Disabled"
+                    : $"Set-NetIPInterface -InterfaceAlias '{ifAlias}' -AddressFamily IPv4 -Forwarding Disabled";
+
+                Logger.Info($"ArpSpoofer: disabling IP forwarding on '{ifAlias ?? "all"}'");
+                var psi = new ProcessStartInfo
+                {
+                    FileName = "powershell.exe",
+                    Arguments = $"-NonInteractive -WindowStyle Hidden -Command \"{cmd}\"",
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true
+                };
+                var p = Process.Start(psi);
+                p?.WaitForExit(8000);
+                Logger.Info($"ArpSpoofer: IP forwarding disabled, exit code = {p?.ExitCode}");
+            }
+            catch (Exception e)
+            {
+                Logger.Warning($"ArpSpoofer: disable IP forwarding failed: {e.Message}");
+            }
+        }
+
+        // Synchronous cleanup for process exit / crash — no async, must complete before the OS tears down the process.
+        private void EmergencyCleanup()
+        {
+            if (!IsActive) return;
+            IsActive = false;
+            _cts?.Cancel();
+            var dev = _dev;
+            _dev = null;
+
+            try { RestorePcArp(); } catch { }
+
+            for (int i = 0; i < 3; i++)
+            {
+                try
+                {
+                    foreach (var (ip, consoleMac) in _consoleMacs)
+                    {
+                        var consoleIpB = _consoleIpBytes[ip];
+                        SendArpReplyOn(dev, _gatewayMac, _gatewayIpBytes, consoleMac, consoleIpB);
+                        SendArpReplyOn(dev, consoleMac, consoleIpB, _gatewayMac, _gatewayIpBytes);
+                    }
+                }
+                catch { }
+                if (i < 2) Thread.Sleep(100);
+            }
+
+            DisableIpForwarding(_localIp);
+            try { dev?.Close(); } catch { }
         }
 
         private static string? GetInterfaceAlias(string localIp)
