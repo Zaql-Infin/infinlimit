@@ -51,9 +51,9 @@ namespace InfinLimit.Interception.Modules
         // Per-device queues: excess packets are delayed here rather than dropped (NetBalancer-style)
         private readonly ConcurrentDictionary<string, ConcurrentQueue<(WinDivertPacket Pkt, WinDivertAddress Addr)>> _downloadQueues = new();
         private readonly ConcurrentDictionary<string, ConcurrentQueue<(WinDivertPacket Pkt, WinDivertAddress Addr)>> _uploadQueues = new();
-        // 7500-7509 network-layer filter (matches Netbalancer: TCP, download priority 1 B/s / 100000ms delay)
+        // 7500-7509 forward-layer filter: TCP DL only, 1 bit/s / 100000ms delay (effective block)
         private readonly ConcurrentQueue<(WinDivertPacket Pkt, WinDivertAddress Addr, DateTime EnqueuedAt)> _port2DelayQueue = new();
-        private readonly TokenBucket _port2Bucket = new(1); // 1 B/s
+        private readonly TokenBucket _port2Bucket = new(1); // 1 bit/s (Consume uses pktLen*8)
         private CancellationTokenSource? _port2Cts;
         private WinDivert? _divert;
         private CancellationTokenSource? _cts;
@@ -344,12 +344,11 @@ namespace InfinLimit.Interception.Modules
             WinDivert? divert = null;
             try
             {
-                // Must use Forward layer — Network layer only captures traffic to/from the
-                // PC itself, not traffic being ARP-routed through the PC from the console.
+                // Forward layer, DL only (DstAddr = console) — intercepts inbound TCP 7500-7509
+                // being routed through the PC via ARP. Network layer can't see forwarded traffic.
                 var enabled = Devices.Where(d => d.IP != null && d.Enabled).ToList();
                 if (enabled.Count == 0) return;
-                var ipClauses = enabled.SelectMany(d => new[] { $"ip.DstAddr == {d.IP}", $"ip.SrcAddr == {d.IP}" });
-                var ipPart = "(" + string.Join(" or ", ipClauses) + ")";
+                var ipPart = "(" + string.Join(" or ", enabled.Select(d => $"ip.DstAddr == {d.IP}")) + ")";
                 const string portPart = "(tcp and ((tcp.SrcPort >= 7500 and tcp.SrcPort <= 7509) or (tcp.DstPort >= 7500 and tcp.DstPort <= 7509)))";
                 var filter = $"ip and {ipPart} and {portPart}";
                 divert = new WinDivert(filter, WinDivertLayer.Forward, priority: 50);
@@ -378,7 +377,7 @@ namespace InfinLimit.Interception.Modules
                 bool sent = false;
                 while (_port2DelayQueue.TryPeek(out var top) &&
                        (now - top.EnqueuedAt).TotalMilliseconds >= 100000 &&
-                       _port2Bucket.Consume(top.Pkt.Length))
+                       _port2Bucket.Consume(top.Pkt.Length * 8)) // consume bits (1 bit/s rate)
                 {
                     if (_port2DelayQueue.TryDequeue(out var p2))
                     {
@@ -461,6 +460,7 @@ namespace InfinLimit.Interception.Modules
                     int pendingJitter = 0;
                     bool deviceMatched = false;
                     bool hasLimits = false;
+                    bool isDlPacket = false; // true when packet is travelling internet → console (DL)
 
                     foreach (var device in Devices)
                     {
@@ -471,6 +471,7 @@ namespace InfinLimit.Interception.Modules
                         if (!isDst && !isSrc) continue;
 
                         deviceMatched = true;
+                        if (isDst) isDlPacket = true;
                         if (device.DownloadKbps > 0 || device.UploadKbps > 0) hasLimits = true;
 
                         // Global game pause OR per-device Blocked priority → drop
@@ -526,8 +527,9 @@ namespace InfinLimit.Interception.Modules
 
                     if (!dropped && !queued)
                     {
-                        // Port filter with no per-device limits = drop matching packets (hard block)
-                        if (in3074 && deviceMatched && !hasLimits)
+                        // Port filter DL only: drop inbound packets (internet → console).
+                        // Upload packets (console → internet) are forwarded unchanged.
+                        if (in3074 && deviceMatched && !hasLimits && isDlPacket)
                         {
                             // drop — do not send
                         }
