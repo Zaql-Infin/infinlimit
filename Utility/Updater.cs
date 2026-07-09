@@ -16,8 +16,8 @@ namespace InfinLimit.Utility
         //   2. Attach InfinLimit.exe as a release asset — that's it.
         //   3. Bump Version here each time you build so existing clients know
         //      a newer build is available.
-        public const int Version = 30;
-        public const string VersionString = "30.0.0";
+        public const int Version = 31;
+        public const string VersionString = "31.0.0";
 
         public const string RepoOwner = "Zaql-Infin";
         public const string RepoName  = "infinlimit";

@@ -446,6 +446,8 @@ namespace InfinLimit.Interception.Modules
                     bool queued = false;
                     bool dropped = false;
                     int pendingJitter = 0;
+                    bool deviceMatched = false;
+                    bool hasLimits = false;
 
                     foreach (var device in Devices)
                     {
@@ -454,6 +456,9 @@ namespace InfinLimit.Interception.Modules
                         bool isDst = dstIp == device.IP; // download: internet → device
                         bool isSrc = srcIp == device.IP; // upload:   device   → internet
                         if (!isDst && !isSrc) continue;
+
+                        deviceMatched = true;
+                        if (device.DownloadKbps > 0 || device.UploadKbps > 0) hasLimits = true;
 
                         // Global game pause OR per-device Blocked priority → drop
                         if (GamePaused || device.Priority == DevicePriority.Blocked)
@@ -508,10 +513,18 @@ namespace InfinLimit.Interception.Modules
 
                     if (!dropped && !queued)
                     {
-                        if (pendingJitter > 0)
-                            await Task.Delay(Random.Shared.Next(1, pendingJitter + 1), ct).ConfigureAwait(false);
-                        await divert.SendAsync(packet, addr);
-                        CountPacket(packet.Span, packet.Length);
+                        // Port filter with no per-device limits = drop matching packets (hard block)
+                        if (in3074 && deviceMatched && !hasLimits)
+                        {
+                            // drop — do not send
+                        }
+                        else
+                        {
+                            if (pendingJitter > 0)
+                                await Task.Delay(Random.Shared.Next(1, pendingJitter + 1), ct).ConfigureAwait(false);
+                            await divert.SendAsync(packet, addr);
+                            CountPacket(packet.Span, packet.Length);
+                        }
                     }
                 }
             }
