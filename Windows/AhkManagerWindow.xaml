@@ -48,8 +48,7 @@
 
                     <StackPanel.Resources>
                         <Style TargetType="controls:Checkbox">
-                            <Setter Property="Width" Value="30"/>
-                            <Setter Property="Height" Value="30"/>
+                            <Setter Property="VerticalAlignment" Value="Center"/>
                         </Style>
                         <Style TargetType="StackPanel">
                             <Setter Property="Orientation" Value="Horizontal"/>

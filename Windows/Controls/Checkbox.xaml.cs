@@ -1,95 +1,72 @@
-﻿using OxyPlot.Wpf;
-
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
-using System.Windows.Media.Effects;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace InfinLimit.Controls
 {
     public partial class Checkbox : UserControl
     {
-        public Geometry Geometry
-        {
-            get { return (Geometry)GetValue(GeometryProperty); }
-            set { SetValue(GeometryProperty, value); }
-        }
-        public static readonly DependencyProperty GeometryProperty =
-            DependencyProperty.Register("Geometry", typeof(Geometry), typeof(Checkbox),
-                new PropertyMetadata(Geometry.Parse("M 0 20 A 1 1 0 0 0 40 20 A 1 1 0 0 0 0 20")));
+        // Kept for API compatibility — no longer rendered, toggle replaces icon
+        public Geometry Geometry { get; set; }
 
+        public bool Checked { get; private set; } = false;
 
-        public bool Checked { get; set; } = false;
+        // Thumb travel: OFF = Margin(2,0,0,0)  ON = Margin(18,0,0,0)
+        private static readonly Thickness ThumbOff = new Thickness(2, 0, 0, 0);
+        private static readonly Thickness ThumbOn  = new Thickness(18, 0, 0, 0);
+        private static readonly Duration AnimDur   = new Duration(TimeSpan.FromMilliseconds(160));
+
         public Checkbox()
         {
-            DataContext = this;
             InitializeComponent();
         }
 
         public void SetState(bool enabled)
         {
             Checked = enabled;
-            //DisabledCover.Visibility = Checked ? Visibility.Hidden : Visibility.Visible;
-            Icon.Data = Geometry;
-            Icon.Opacity = enabled ? 1.0 : 0.35;
-            
-            // Fixed: When checked (enabled), use AccentColor background; when unchecked, use LightBackColor
-            // Force background update with explicit resource lookup
-            try 
+
+            var targetColor = enabled
+                ? ((SolidColorBrush)Application.Current.FindResource("AccentColor")).Color
+                : ((SolidColorBrush)Application.Current.FindResource("InactiveColor")).Color;
+
+            // Animate track color
+            Track.Background.BeginAnimation(SolidColorBrush.ColorProperty, null);
+            var trackBrush = new SolidColorBrush(((SolidColorBrush)Track.Background).Color);
+            Track.Background = trackBrush;
+            trackBrush.BeginAnimation(SolidColorBrush.ColorProperty,
+                new ColorAnimation(targetColor, AnimDur) { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } });
+
+            // Animate thumb slide
+            var thumbAnim = new ThicknessAnimation(enabled ? ThumbOn : ThumbOff, AnimDur)
             {
-                var backgroundBrush = (SolidColorBrush)Application.Current.FindResource(Checked ? "AccentColor" : "LightBackColor");
-                ButtonBorder.Background = backgroundBrush;
-                
-                // Force visual refresh
-                ButtonBorder.InvalidateVisual();
-                this.InvalidateVisual();
-            }
-            catch (Exception ex)
-            {
-                // Fallback colors if resources not found
-                ButtonBorder.Background = Checked ? new SolidColorBrush(Colors.DarkBlue) : new SolidColorBrush(Colors.DarkGray);
-            }
-            
-            ButtonBorder.Effect = enabled ? new DropShadowEffect()
-            {
-                ShadowDepth = 0,
-                Color = Colors.White,
-                BlurRadius = 6
-            } : null;
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+            };
+            Thumb.BeginAnimation(MarginProperty, thumbAnim);
         }
 
-        private void Border_MouseEnter(object sender, MouseEventArgs e)
+        private void Track_MouseEnter(object sender, MouseEventArgs e)
         {
-            var lightOn = new DoubleAnimation(ButtonBorder.Opacity, 1.0, TimeSpan.FromSeconds(0.35)) { EasingFunction = new BackEase() { EasingMode = EasingMode.EaseOut } };
-            ButtonBorder.BeginAnimation(OpacityProperty, lightOn);
+            var fade = new DoubleAnimation(Track.Opacity, 0.85, new Duration(TimeSpan.FromMilliseconds(120)));
+            Track.BeginAnimation(OpacityProperty, fade);
         }
 
-        private void Border_MouseLeave(object sender, MouseEventArgs e)
+        private void Track_MouseLeave(object sender, MouseEventArgs e)
         {
-            var lightOff = new DoubleAnimation(ButtonBorder.Opacity, 0.7, TimeSpan.FromSeconds(0.35)) { EasingFunction = new BackEase() { EasingMode = EasingMode.EaseOut } };
-            ButtonBorder.BeginAnimation(OpacityProperty, lightOff);
+            var fade = new DoubleAnimation(Track.Opacity, 1.0, new Duration(TimeSpan.FromMilliseconds(120)));
+            Track.BeginAnimation(OpacityProperty, fade);
         }
 
         public event RoutedEventHandler Click;
-        private void Border_MouseDown(object sender, MouseButtonEventArgs e)
+
+        private void Track_MouseDown(object sender, MouseButtonEventArgs e)
         {
             if (e.ChangedButton == MouseButton.Left)
             {
                 SetState(!Checked);
-                if (Click != null)
-                    Click(this, e);
+                Click?.Invoke(this, e);
             }
         }
     }

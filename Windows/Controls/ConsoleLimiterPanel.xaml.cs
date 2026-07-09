@@ -4,11 +4,14 @@ using InfinLimit.Utility;
 using static InfinLimit.Interception.Modules.DevicePriority;
 
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
+using System.Windows.Media.Effects;
 using System.Windows.Threading;
 
 namespace InfinLimit.Windows.Controls
@@ -28,13 +31,6 @@ namespace InfinLimit.Windows.Controls
 
             ConsoleModule.OnStateChanged += () => Dispatcher.Invoke(RefreshState);
 
-            foreach (var profile in ConsoleModule.GameProfiles)
-                GameSelector.Items.Add(profile);
-
-            GameSelector.SelectedItem = ConsoleModule.SelectedGame
-                ?? ConsoleModule.GameProfiles.Find(g => g.Name == "Destiny 2")
-                ?? ConsoleModule.GameProfiles[0];
-
             _speedTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
             _speedTimer.Tick += (_, __) => UpdateSpeeds();
             _speedTimer.Start();
@@ -49,11 +45,19 @@ namespace InfinLimit.Windows.Controls
         private void RefreshState()
         {
             var on = _module?.IsEnabled ?? false;
-            ChkEnabled.Checked = on;
+            ChkEnabled.SetState(on);
             EnabledLabel.Text = on ? "ON" : "OFF";
             EnabledLabel.Foreground = on
                 ? (System.Windows.Media.Brush)FindResource("AccentColor")
                 : (System.Windows.Media.Brush)FindResource("TextSecondary");
+            PortToggleCB.SetState(ConsoleModule.PortFilterActive);
+            PortKeybindBtn.Text = ConsoleModule.PortFilterKeybind.Any()
+                ? string.Join(" + ", ConsoleModule.PortFilterKeybind.Select(k => k.ToString().Replace("VK_", "")))
+                : "No keybind";
+            Port2ToggleCB.SetState(ConsoleModule.Port2FilterActive);
+            Port2KeybindBtn.Text = ConsoleModule.Port2FilterKeybind.Any()
+                ? string.Join(" + ", ConsoleModule.Port2FilterKeybind.Select(k => k.ToString().Replace("VK_", "")))
+                : "No keybind";
             RefreshEmptyState();
         }
 
@@ -83,20 +87,22 @@ namespace InfinLimit.Windows.Controls
         private void ChkEnabled_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
             if (_module == null) return;
-            if (_module.IsEnabled) _module.Disable(); else _module.Enable();
-            RefreshState();
-        }
-
-        // ── Game selector ────────────────────────────────────────────────────
-
-        private void GameSelector_Changed(object sender, SelectionChangedEventArgs e)
-        {
-            if (GameSelector.SelectedItem is GameProfile profile)
+            if (_module.IsEnabled)
             {
-                ConsoleModule.SelectedGame = profile.Ports.Count == 0 ? null : profile;
-                ConsoleModule.SaveGame();
-                _module?.RefreshFilter();
+                ConsoleModule.PortFilterActive = false;
+                ConsoleModule.Port2FilterActive = false;
+                _module.StopPort2Filter();
+                _module.Disable();
             }
+            else
+            {
+                ApplyDevices();
+                ConsoleModule.PortFilterActive = true;
+                ConsoleModule.Port2FilterActive = true;
+                _module.Enable();
+                _module.StartPort2Filter();
+            }
+            RefreshState();
         }
 
         // ── Device management ────────────────────────────────────────────────
@@ -172,7 +178,7 @@ namespace InfinLimit.Windows.Controls
             }
         }
 
-        private void ApplyLimits_Click(object sender, RoutedEventArgs e)
+        private void ApplyDevices()
         {
             ConsoleModule.Devices.Clear();
             foreach (var vm in _devices)
@@ -188,6 +194,11 @@ namespace InfinLimit.Windows.Controls
                     JitterMs = vm.JitterMs
                 });
             }
+        }
+
+        private void ApplyLimits_Click(object sender, RoutedEventArgs e)
+        {
+            ApplyDevices();
 
             if (_module != null)
             {
@@ -200,6 +211,111 @@ namespace InfinLimit.Windows.Controls
 
             RefreshState();
             StatusLabel.Text = $"Applied — {ConsoleModule.Devices.Count} console(s)";
+        }
+
+        // ── Port filter toggles ───────────────────────────────────────────────
+
+        private void PortToggle_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (_module == null) return;
+            ConsoleModule.PortFilterActive = !ConsoleModule.PortFilterActive;
+            SyncModuleToFilters();
+            Config.Save();
+            RefreshState();
+        }
+
+        private void Port2Toggle_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (_module == null) return;
+            ConsoleModule.Port2FilterActive = !ConsoleModule.Port2FilterActive;
+            if (ConsoleModule.Port2FilterActive) _module.StartPort2Filter();
+            else _module.StopPort2Filter();
+            Config.Save();
+            RefreshState();
+        }
+
+        private void SyncModuleToFilters()
+        {
+            bool needsForward = ConsoleModule.PortFilterActive;
+            if (needsForward && !_module.IsEnabled)
+            {
+                ApplyDevices();
+                _module.Enable();
+            }
+            else if (!needsForward && _module.IsEnabled)
+            {
+                _module.Disable();
+            }
+            else if (needsForward && _module.IsEnabled)
+            {
+                _module.RefreshFilter();
+            }
+        }
+
+        // ── Keybind capture ───────────────────────────────────────────────────
+
+        private bool _capturingKeybind = false;
+        private InfinLimit.Controls.Button _capturingBtn = null;
+        private Action<List<Keycode>> _pendingCapture = null;
+        private KeyListener.KeysPressedEventHandler _captureHandler = null;
+
+        private void StartCapture(InfinLimit.Controls.Button btn, Action<List<Keycode>> onCapture)
+        {
+            if (_capturingKeybind) { StopCapture(); return; }
+            _capturingBtn = btn;
+            _capturingKeybind = true;
+            _pendingCapture = onCapture;
+            btn.Text = "Press keys…";
+            btn.ButtonBorder.BorderThickness = new System.Windows.Thickness(1.75);
+            btn.ButtonBorder.BorderBrush = Brushes.White;
+            btn.ButtonBorder.Effect = new DropShadowEffect { ShadowDepth = 0, Color = Colors.White, BlurRadius = 8 };
+            _captureHandler = new KeyListener.KeysPressedEventHandler((keys) =>
+            {
+                if (keys.Count == 1 && keys.First.Value == Keycode.VK_LMB) return;
+                var list = new List<Keycode>();
+                if (!(keys.Count == 1 && keys.First.Value == Keycode.VK_ESC))
+                    list.AddRange(keys);
+                _pendingCapture?.Invoke(list);
+                Config.Save();
+                Dispatcher.Invoke(() => { StopCapture(); RefreshState(); });
+            });
+            KeyListener.KeysPressed += _captureHandler;
+        }
+
+        private void PortKeybind_Click(object sender, RoutedEventArgs e)
+        {
+            StartCapture(PortKeybindBtn, keys =>
+            {
+                ConsoleModule.PortFilterKeybind.Clear();
+                ConsoleModule.PortFilterKeybind.AddRange(keys);
+            });
+        }
+
+        private void Port2Keybind_Click(object sender, RoutedEventArgs e)
+        {
+            StartCapture(Port2KeybindBtn, keys =>
+            {
+                ConsoleModule.Port2FilterKeybind.Clear();
+                ConsoleModule.Port2FilterKeybind.AddRange(keys);
+            });
+        }
+
+        private void StopCapture()
+        {
+            if (_captureHandler != null)
+            {
+                KeyListener.KeysPressed -= _captureHandler;
+                _captureHandler = null;
+            }
+            if (_capturingBtn != null)
+            {
+                _capturingBtn.ButtonBorder.BorderThickness = new System.Windows.Thickness(0);
+                _capturingBtn.ButtonBorder.BorderBrush = Brushes.Transparent;
+                _capturingBtn.ButtonBorder.Effect = null;
+                _capturingBtn = null;
+            }
+            _capturingKeybind = false;
+            _pendingCapture = null;
         }
     }
 
