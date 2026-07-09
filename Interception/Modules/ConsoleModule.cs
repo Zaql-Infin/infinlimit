@@ -27,6 +27,10 @@ namespace InfinLimit.Interception.Modules
         public static bool Buffering = false;
         public static bool GamePaused = false;
 
+        // Port filter toggles — gate per-range throttling; ARP/WinDivert stays running
+        public static bool PortFilterActive = false;   // 3074-3173 FORWARD layer rate limit
+        public static bool Port2FilterActive = false;  // 7500-7509 NETWORK layer TCP delay
+
         // Slow mode speed multiplier (10% of set rate)
         public const float SlowMultiplier = 0.10f;
 
@@ -39,12 +43,18 @@ namespace InfinLimit.Interception.Modules
         public static List<Keycode> AutoResyncKeybind = new();
         public static List<Keycode> BufferingKeybind = new();
         public static List<Keycode> GamePauseKeybind = new();
+        public static List<Keycode> PortFilterKeybind = new();
+        public static List<Keycode> Port2FilterKeybind = new();
 
         private readonly ConcurrentDictionary<string, TokenBucket> _uploadBuckets = new();
         private readonly ConcurrentDictionary<string, TokenBucket> _downloadBuckets = new();
         // Per-device queues: excess packets are delayed here rather than dropped (NetBalancer-style)
         private readonly ConcurrentDictionary<string, ConcurrentQueue<(WinDivertPacket Pkt, WinDivertAddress Addr)>> _downloadQueues = new();
         private readonly ConcurrentDictionary<string, ConcurrentQueue<(WinDivertPacket Pkt, WinDivertAddress Addr)>> _uploadQueues = new();
+        // 7500-7509 network-layer filter (matches Netbalancer: TCP, download priority 1 B/s / 100000ms delay)
+        private readonly ConcurrentQueue<(WinDivertPacket Pkt, WinDivertAddress Addr, DateTime EnqueuedAt)> _port2DelayQueue = new();
+        private readonly TokenBucket _port2Bucket = new(1); // 1 B/s
+        private CancellationTokenSource? _port2Cts;
         private WinDivert? _divert;
         private CancellationTokenSource? _cts;
         private readonly ArpSpoofer _arpSpoofer = new();
@@ -62,7 +72,7 @@ namespace InfinLimit.Interception.Modules
         public static readonly List<GameProfile> GameProfiles = new()
         {
             new GameProfile("All Traffic",   new()),
-            new GameProfile("Destiny 1",     new() { 3074, 3478, 3479, 3480, 7500, 9308 }),
+            new GameProfile("Destiny 1",     new() { 3478, 3479, 3480, 7500, 9308 }, (3074, 3173)),
             new GameProfile("Destiny 2",     new() { 3074, 3478, 3479, 3480, 7500, 9308 }),
             new GameProfile("Call of Duty",  new() { 3074, 3075, 3478, 3479, 27015, 27016 }),
             new GameProfile("Fortnite",      new() { 9000, 9010, 9020, 9030, 22222 }),
@@ -90,6 +100,8 @@ namespace InfinLimit.Interception.Modules
             AutoResyncKeybind.AddRange(cfg.GetSettings<List<Keycode>>("AutoResyncKeybind") ?? new());
             BufferingKeybind.AddRange(cfg.GetSettings<List<Keycode>>("BufferingKeybind") ?? new());
             GamePauseKeybind.AddRange(cfg.GetSettings<List<Keycode>>("GamePauseKeybind") ?? new());
+            PortFilterKeybind.AddRange(cfg.GetSettings<List<Keycode>>("PortFilterKeybind") ?? new());
+            Port2FilterKeybind.AddRange(cfg.GetSettings<List<Keycode>>("Port2FilterKeybind") ?? new());
 
             // Bool flags — check key exists first to apply our own defaults
             DLEnabled = cfg.Settings.ContainsKey("DLEnabled") ? cfg.GetSettings<bool>("DLEnabled") : true;
@@ -103,6 +115,24 @@ namespace InfinLimit.Interception.Modules
 
         private void KeybindHandler(LinkedList<Keycode> keys)
         {
+            if (PortFilterKeybind.Count > 0 && MatchesKeybind(keys, PortFilterKeybind))
+            {
+                PortFilterActive = !PortFilterActive;
+                if (PortFilterActive && !IsEnabled) Enable();
+                else if (!PortFilterActive && IsEnabled) RefreshFilter();
+                OnStateChanged?.Invoke();
+                Config.Save();
+                return;
+            }
+            if (Port2FilterKeybind.Count > 0 && MatchesKeybind(keys, Port2FilterKeybind))
+            {
+                Port2FilterActive = !Port2FilterActive;
+                if (Port2FilterActive) StartPort2Filter();
+                else StopPort2Filter();
+                OnStateChanged?.Invoke();
+                Config.Save();
+                return;
+            }
             if (EnableKeybind.Count > 0 && MatchesKeybind(keys, EnableKeybind))
             {
                 if (IsEnabled) Disable(); else Enable();
@@ -244,6 +274,7 @@ namespace InfinLimit.Interception.Modules
             _passing = true;
             _downloadQueues.Clear();
             _uploadQueues.Clear();
+            while (_port2DelayQueue.TryDequeue(out _)) { }
 
             var cts = _cts;
             _cts = null;
@@ -272,6 +303,7 @@ namespace InfinLimit.Interception.Modules
 
             _downloadQueues.Clear();
             _uploadQueues.Clear();
+            while (_port2DelayQueue.TryDequeue(out _)) { }
 
             var oldCts = _cts;
             _cts = null;
@@ -282,6 +314,67 @@ namespace InfinLimit.Interception.Modules
             // Brief gap: IP forwarding handles packets natively (no drops, no latency).
             // Then start a new WinDivert with the updated direction-aware filter.
             Task.Delay(20).ContinueWith(_ => StartDivert());
+        }
+
+        // ── TCP 7500-7509 network-layer filter ───────────────────────────────
+        public void StartPort2Filter()
+        {
+            if (_port2Cts != null) return;
+            while (_port2DelayQueue.TryDequeue(out _)) { }
+            _port2Cts = new CancellationTokenSource();
+            Task.Run(() => ProcessPort2Async(_port2Cts.Token));
+        }
+
+        public void StopPort2Filter()
+        {
+            _port2Cts?.Cancel();
+            _port2Cts = null;
+            while (_port2DelayQueue.TryDequeue(out _)) { }
+        }
+
+        private async Task ProcessPort2Async(CancellationToken ct)
+        {
+            WinDivert? divert = null;
+            try
+            {
+                const string filter = "ip and tcp and inbound and " +
+                    "((tcp.SrcPort >= 7500 and tcp.SrcPort <= 7509) or (tcp.DstPort >= 7500 and tcp.DstPort <= 7509))";
+                divert = new WinDivert(filter, WinDivertLayer.Network, priority: 50);
+                _ = Task.Run(() => DrainPort2Async(divert, ct), ct);
+
+                while (!ct.IsCancellationRequested)
+                {
+                    var packet = new WinDivertPacket();
+                    var addr = new WinDivertAddress();
+                    await divert.RecvAsync(packet, addr, ct);
+                    if (_port2DelayQueue.Count < 512)
+                        _port2DelayQueue.Enqueue((packet, addr, DateTime.UtcNow));
+                }
+            }
+            catch (TaskCanceledException) { }
+            catch (Exception e) when (ct.IsCancellationRequested) { }
+            catch (Exception e) { Logger.Error(e, "ConsoleModule Port2"); }
+            finally { try { divert?.Dispose(); } catch { } }
+        }
+
+        private async Task DrainPort2Async(WinDivert divert, CancellationToken ct)
+        {
+            while (!ct.IsCancellationRequested)
+            {
+                var now = DateTime.UtcNow;
+                bool sent = false;
+                while (_port2DelayQueue.TryPeek(out var top) &&
+                       (now - top.EnqueuedAt).TotalMilliseconds >= 100000 &&
+                       _port2Bucket.Consume(top.Pkt.Length))
+                {
+                    if (_port2DelayQueue.TryDequeue(out var p2))
+                    {
+                        try { await divert.SendAsync(p2.Pkt, p2.Addr); } catch { }
+                        sent = true;
+                    }
+                }
+                if (!sent) await Task.Delay(1, ct).ConfigureAwait(false);
+            }
         }
 
         private void StartDivert()
@@ -318,6 +411,16 @@ namespace InfinLimit.Interception.Modules
                     // Drain mode: forward received packet before checking cancellation,
                     // so no in-flight packet is dropped during a graceful disable.
                     if (_passing)
+                    {
+                        await divert.SendAsync(packet, addr);
+                        CountPacket(packet.Span, packet.Length);
+                        continue;
+                    }
+
+                    // Per-range filter gate for UDP 3074-3173 rate limiting.
+                    bool in3074 = PacketInPortRange(packet.Span, 3074, 3173);
+
+                    if (!in3074 || !PortFilterActive)
                     {
                         await divert.SendAsync(packet, addr);
                         CountPacket(packet.Span, packet.Length);
@@ -539,11 +642,10 @@ namespace InfinLimit.Interception.Modules
             bool needsDL = DLEnabled || DLSlowEnabled;
             bool needsUL = ULEnabled || ULSlowEnabled;
 
-            if (!needsDL && !needsUL && !GamePaused) return null;
+            if (!needsDL && !needsUL && !GamePaused && !PortFilterActive) return null;
 
             var ipClauses = new List<string>();
 
-            // GamePaused must intercept both directions to drop all game traffic.
             if (needsDL || GamePaused)
                 ipClauses.AddRange(enabled.Select(d => $"ip.DstAddr == {d.IP}"));
             if (needsUL || GamePaused)
@@ -551,21 +653,19 @@ namespace InfinLimit.Interception.Modules
 
             var ipPart = "(" + string.Join(" or ", ipClauses) + ")";
 
-            // Kernel-level port filter: when a specific game is selected, only
-            // intercept that game's UDP ports so non-game console traffic
-            // (Netflix, Xbox Live, system updates) is never touched.
-            if (SelectedGame != null && SelectedGame.Ports.Count > 0)
-            {
-                var portClauses = SelectedGame.Ports.SelectMany(p => new[]
-                {
-                    $"udp.SrcPort == {p}",
-                    $"udp.DstPort == {p}"
-                });
-                var portPart = "(" + string.Join(" or ", portClauses) + ")";
-                return $"ip and {ipPart} and {portPart}";
-            }
+            if (!PortFilterActive) return null;
+            const string portPart = "(udp and ((udp.SrcPort >= 3074 and udp.SrcPort <= 3173) or (udp.DstPort >= 3074 and udp.DstPort <= 3173)))";
+            return $"ip and {ipPart} and {portPart}";
+        }
 
-            return $"ip and {ipPart}";
+        private static bool PacketInPortRange(ReadOnlySpan<byte> data, int from, int to)
+        {
+            if (data.Length < 20) return false;
+            int ipHdrLen = (data[0] & 0x0F) * 4;
+            if (data[9] != 17 || data.Length < ipHdrLen + 4) return false;
+            int src = (data[ipHdrLen] << 8) | data[ipHdrLen + 1];
+            int dst = (data[ipHdrLen + 2] << 8) | data[ipHdrLen + 3];
+            return (src >= from && src <= to) || (dst >= from && dst <= to);
         }
 
         private static bool MatchesGamePorts(ReadOnlySpan<byte> data, List<int> ports)
@@ -704,11 +804,13 @@ namespace InfinLimit.Interception.Modules
     {
         public string Name { get; }
         public List<int> Ports { get; }
+        public (int From, int To)? Range { get; }
 
-        public GameProfile(string name, List<int> ports)
+        public GameProfile(string name, List<int> ports, (int, int)? range = null)
         {
             Name = name;
             Ports = ports;
+            Range = range;
         }
 
         public override string ToString() => Name;
