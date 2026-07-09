@@ -108,35 +108,21 @@
                                        VerticalAlignment="Center"/>
                         </StackPanel>
 
-                        <!-- Window control buttons -->
+                        <!-- Title bar: Pin + Close only -->
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                             <StackPanel.Resources>
                                 <Style TargetType="controls:WindowControlButton">
-                                    <Setter Property="FillColor" Value="{StaticResource InactiveColor}"/>
+                                    <Setter Property="FillColor" Value="{StaticResource TextSecondary}"/>
                                     <Setter Property="GlowColor" Value="{StaticResource AccentColor}"/>
-                                    <Setter Property="Height" Value="26"/>
-                                    <Setter Property="Width" Value="24"/>
-                                    <Setter Property="Scale" Value="0.55"/>
-                                    <Setter Property="MaxScale" Value="0.6"/>
+                                    <Setter Property="Height" Value="28"/>
+                                    <Setter Property="Width" Value="26"/>
+                                    <Setter Property="Scale" Value="0.7"/>
+                                    <Setter Property="MaxScale" Value="0.75"/>
                                 </Style>
                             </StackPanel.Resources>
 
-                            <controls:WindowControlButton x:Name="ConsoleButton" Click="ConsoleButtonClick"
-                                                          PathData="{StaticResource ConsoleIcon}"/>
-                            <controls:WindowControlButton Click="SoundButtonClick"
-                                                          PathData="M3 9 L3 15 L7 15 L12 20 L12 4 L7 9 Z M13.5 12 C13.5 10.23 12.48 8.71 11 7.97 L11 16.02 C12.48 15.29 13.5 13.77 13.5 12 Z M11 3.23 L11 5.29 C14.89 6.15 18 9.46 18 12 C18 14.54 14.89 17.85 11 18.71 L11 20.77 C16.52 19.86 21 16.07 21 12 C21 7.93 16.52 4.14 11 3.23 Z"/>
-                            <controls:WindowControlButton Click="AhkClick"
-                                                          PathData="{StaticResource AhkIcon}"/>
-                            <controls:WindowControlButton Click="ServiceWindowButtonClick"
-                                                          PathData="{StaticResource SettingsIcon}"/>
-                            <controls:WindowControlButton x:Name="OpenLogs" Click="LogButtonClick"
-                                                          PathData="{StaticResource LogIcon}"/>
-                            <controls:WindowControlButton x:Name="Overlay" Click="OverlayClick"
-                                                          PathData="{StaticResource Overlay}"/>
                             <controls:WindowControlButton x:Name="Pin" Click="PinClick"
                                                           PathData="{StaticResource Pin}"/>
-                            <controls:WindowControlButton Click="TrayButtonClick"
-                                                          PathData="{StaticResource HideIcon}"/>
                             <controls:WindowControlButton Click="ExitButtonClick"
                                                           PathData="{StaticResource CloseIcon}" GlowColor="#d93732"/>
                         </StackPanel>
@@ -532,6 +518,40 @@
                     </Border>
 
                 </Grid>
+
+                <Line X1="0" X2="290" Stroke="{StaticResource DividorColor}" StrokeThickness="1"/>
+
+                <!-- ═══ BOTTOM BAR: secondary controls ═══ -->
+                <Border Background="{StaticResource LightBackColor}" CornerRadius="0,0,12,12" Padding="6,4">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <StackPanel.Resources>
+                            <Style TargetType="controls:WindowControlButton">
+                                <Setter Property="FillColor" Value="{StaticResource TextSecondary}"/>
+                                <Setter Property="GlowColor" Value="{StaticResource AccentColor}"/>
+                                <Setter Property="Height" Value="32"/>
+                                <Setter Property="Width" Value="32"/>
+                                <Setter Property="Scale" Value="0.72"/>
+                                <Setter Property="MaxScale" Value="0.8"/>
+                                <Setter Property="Margin" Value="2,0"/>
+                            </Style>
+                        </StackPanel.Resources>
+
+                        <controls:WindowControlButton Click="TrayButtonClick"
+                                                      PathData="{StaticResource HideIcon}"/>
+                        <controls:WindowControlButton x:Name="Overlay" Click="OverlayClick"
+                                                      PathData="{StaticResource Overlay}"/>
+                        <controls:WindowControlButton x:Name="OpenLogs" Click="LogButtonClick"
+                                                      PathData="{StaticResource LogIcon}"/>
+                        <controls:WindowControlButton Click="ServiceWindowButtonClick"
+                                                      PathData="{StaticResource SettingsIcon}"/>
+                        <controls:WindowControlButton Click="AhkClick"
+                                                      PathData="{StaticResource AhkIcon}"/>
+                        <controls:WindowControlButton Click="SoundButtonClick"
+                                                      PathData="M3 9 L3 15 L7 15 L12 20 L12 4 L7 9 Z M13.5 12 C13.5 10.23 12.48 8.71 11 7.97 L11 16.02 C12.48 15.29 13.5 13.77 13.5 12 Z M11 3.23 L11 5.29 C14.89 6.15 18 9.46 18 12 C18 14.54 14.89 17.85 11 18.71 L11 20.77 C16.52 19.86 21 16.07 21 12 C21 7.93 16.52 4.14 11 3.23 Z"/>
+                        <controls:WindowControlButton x:Name="ConsoleButton" Click="ConsoleButtonClick"
+                                                      PathData="{StaticResource ConsoleIcon}"/>
+                    </StackPanel>
+                </Border>
 
             </StackPanel>
 
