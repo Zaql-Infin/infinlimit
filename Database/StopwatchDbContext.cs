@@ -1,4 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using InfinLimit;
+
+using Microsoft.EntityFrameworkCore;
 
 using System;
 using System.Collections.Generic;
@@ -12,7 +14,8 @@ namespace InfinLimit.Database
 {
     public class InfinLimitDbContext : DbContext
     {
-        private const string _connectionString = "Data Source=data.db";
+        private static readonly string _connectionString =
+            $"Data Source={Path.Combine(App.ExeDirectory, "data.db")}";
 
         public DbSet<DbPacket> Packets { get; set; }
         public DbSet<DbLog> Log { get; set; }
