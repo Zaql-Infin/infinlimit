@@ -16,8 +16,8 @@ namespace InfinLimit.Utility
         //   2. Attach InfinLimit.exe as a release asset — that's it.
         //   3. Bump Version here each time you build so existing clients know
         //      a newer build is available.
-        public const int Version = 5;
-        public const string VersionString = "5.0.0";
+        public const int Version = 6;
+        public const string VersionString = "6.0.0";
 
         public const string RepoOwner = "Zaql-Infin";
         public const string RepoName  = "infinlimit";
@@ -52,11 +52,11 @@ namespace InfinLimit.Utility
                 if (!int.TryParse(part, out int remote) || remote <= Version)
                     return false;
 
-                // find "InfinLimit.exe" in the release assets
+                // find "InfinLimitSetup.exe" in the release assets
                 foreach (var asset in root.GetProperty("assets").EnumerateArray())
                 {
                     var name = asset.GetProperty("name").GetString() ?? "";
-                    if (name.Equals("InfinLimit.exe", StringComparison.OrdinalIgnoreCase))
+                    if (name.Equals("InfinLimitSetup.exe", StringComparison.OrdinalIgnoreCase))
                     {
                         _pendingDownloadUrl = asset.GetProperty("browser_download_url").GetString();
                         return !string.IsNullOrEmpty(_pendingDownloadUrl);
@@ -79,7 +79,7 @@ namespace InfinLimit.Utility
             if (string.IsNullOrEmpty(_pendingDownloadUrl))
                 return false;
 
-            var tempExe = Path.Combine(Path.GetTempPath(), "InfinLimit_update.exe");
+            var tempExe = Path.Combine(Path.GetTempPath(), "InfinLimitSetup_update.exe");
 
             try
             {
@@ -112,28 +112,17 @@ namespace InfinLimit.Utility
             return true;
         }
 
-        private static void LaunchPatcher(string newExe)
+        private static void LaunchPatcher(string newSetup)
         {
-            var current = Process.GetCurrentProcess().MainModule!.FileName;
-            var bat     = Path.Combine(Path.GetTempPath(), "infinlimit_patch.bat");
-
-            // Wait for the current process to release the exe, copy, restart.
-            File.WriteAllText(bat,
-                "@echo off\r\n" +
-                "timeout /t 2 /nobreak >nul\r\n" +
-                ":retry\r\n" +
-                $"copy /y \"{newExe}\" \"{current}\" >nul 2>&1\r\n" +
-                "if errorlevel 1 ( timeout /t 1 /nobreak >nul & goto retry )\r\n" +
-                $"del \"{newExe}\"\r\n" +
-                $"start \"\" \"{current}\"\r\n" +
-                "del \"%~f0\"\r\n"
-            );
-
+            // Run the Inno Setup installer silently.
+            // /CLOSEAPPLICATIONS makes the installer close the running InfinLimit process
+            // before replacing the exe, then /RESTARTAPPLICATIONS relaunches it after.
             Process.Start(new ProcessStartInfo
             {
-                FileName       = bat,
+                FileName        = newSetup,
+                Arguments       = "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS",
                 UseShellExecute = true,
-                WindowStyle    = ProcessWindowStyle.Hidden
+                Verb            = "runas"
             });
 
             Application.Current.Dispatcher.Invoke(Application.Current.Shutdown);
