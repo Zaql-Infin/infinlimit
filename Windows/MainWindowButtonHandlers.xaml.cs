@@ -147,8 +147,8 @@ namespace InfinLimit
                 // ModuleSettingsBorder fade-collapse, so we pin MinHeight here.
                 // MinWidth forces the window wide enough that the panel's 330px content
                 // has room after ConsolePage margins (20+20) and padding (16+16).
-                Main.MinWidth = 550;
-                Main.MinHeight = 660;
+                Main.MinWidth = 460;
+                Main.MinHeight = 0;
 
                 TopBlock.ElementFadeOut(time);
                 ModuleSettingsBorder.ElementFadeOut(time);

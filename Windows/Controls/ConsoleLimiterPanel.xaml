@@ -107,7 +107,7 @@
         </Style>
     </UserControl.Resources>
 
-    <StackPanel Margin="0" Orientation="Vertical" MinWidth="400">
+    <StackPanel Margin="0" Orientation="Vertical" MinWidth="380">
 
         <!-- Header row: icon + title + master enable toggle -->
         <Grid Margin="0,0,0,8">
@@ -146,13 +146,13 @@
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="58"/>
-                    <ColumnDefinition Width="58"/>
-                    <ColumnDefinition Width="74"/>
                     <ColumnDefinition Width="48"/>
                     <ColumnDefinition Width="48"/>
-                    <ColumnDefinition Width="40"/>
-                    <ColumnDefinition Width="28"/>
+                    <ColumnDefinition Width="68"/>
+                    <ColumnDefinition Width="42"/>
+                    <ColumnDefinition Width="42"/>
+                    <ColumnDefinition Width="36"/>
+                    <ColumnDefinition Width="24"/>
                 </Grid.ColumnDefinitions>
                 <TextBlock Grid.Column="0" Text="CONSOLE" Style="{StaticResource ColHeader}" HorizontalAlignment="Left"/>
                 <TextBlock Grid.Column="1" Text="↓ LIVE"   Style="{StaticResource ColHeader}" Foreground="{StaticResource AccentColor}"/>
