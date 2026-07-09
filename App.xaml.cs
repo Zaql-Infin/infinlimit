@@ -230,7 +230,7 @@ namespace InfinLimit
             }
         }
 
-        public static bool snow = true;
+        public static bool snow = false;
         private void Window_Activated(object? sender, EventArgs e)
         {
             if (sender is Window w)
