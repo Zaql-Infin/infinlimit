@@ -278,7 +278,8 @@
                 </Grid>
                 <Grid MinHeight="28">
                     <Label Content="Keybind" Style="{StaticResource RowLabel}" HorizontalAlignment="Left"/>
-                    <controls:Button x:Name="PortKeybindBtn" HorizontalAlignment="Right"
+                    <controls:Button x:Name="PortKeybindBtn" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                     MaxWidth="115" Height="22"
                                      Text="No keybind" Click="PortKeybind_Click"/>
                 </Grid>
 
@@ -295,7 +296,8 @@
                 </Grid>
                 <Grid MinHeight="28">
                     <Label Content="Keybind" Style="{StaticResource RowLabel}" HorizontalAlignment="Left"/>
-                    <controls:Button x:Name="Port2KeybindBtn" HorizontalAlignment="Right"
+                    <controls:Button x:Name="Port2KeybindBtn" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                     MaxWidth="115" Height="22"
                                      Text="No keybind" Click="Port2Keybind_Click"/>
                 </Grid>
             </StackPanel>

@@ -60,9 +60,20 @@ namespace InfinLimit.Windows.Controls
         {
             EmptyState.Visibility = _devices.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
             var active = _devices.Count(d => d.Enabled);
-            StatusLabel.Text = _devices.Count == 0
-                ? "No consoles — add an IP above"
-                : $"{_devices.Count} console(s), {active} active";
+            if (_devices.Count == 0)
+            {
+                StatusLabel.Text = "No consoles — add an IP above";
+            }
+            else if (_module?.IsEnabled == true)
+            {
+                StatusLabel.Text = _module.ArpActive
+                    ? $"ARP active — {_devices.Count} console(s)"
+                    : _module.ArpStatus;
+            }
+            else
+            {
+                StatusLabel.Text = $"{_devices.Count} console(s), {active} active";
+            }
         }
 
         // ── Enable toggle ────────────────────────────────────────────────────

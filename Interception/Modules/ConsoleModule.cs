@@ -60,6 +60,9 @@ namespace InfinLimit.Interception.Modules
         private readonly ArpSpoofer _arpSpoofer = new();
         private volatile bool _passing = false; // when true, forward all packets with no drops
 
+        public string ArpStatus => _arpSpoofer.StatusMessage;
+        public bool ArpActive => _arpSpoofer.IsActive;
+
         // Per-device bytes accumulated each second, then published to DLSpeedBps/ULSpeedBps
         private readonly ConcurrentDictionary<string, long> _dlBytesAccum = new();
         private readonly ConcurrentDictionary<string, long> _ulBytesAccum = new();
