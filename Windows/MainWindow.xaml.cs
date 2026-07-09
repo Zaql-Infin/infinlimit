@@ -532,7 +532,7 @@ namespace InfinLimit
             {
                 InstBufferCB.SetState(InstanceModule.Buffer);
                 InstSlowCB.SetState(InstanceModule.RateLimitingEnabled);
-                InstRateLimitTB.Text = InstanceModule.TargetBitsPerSecond.ToString();
+                InstRateLimitTB.Text = InstanceModule.TargetBytesPerSecond.ToString();
                 INSTANCE_Panel.Visibility = Visibility.Visible;
             }
             else
