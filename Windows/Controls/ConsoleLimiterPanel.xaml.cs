@@ -20,7 +20,6 @@ namespace InfinLimit.Windows.Controls
     {
         private ObservableCollection<ConsoleDeviceVM> _devices = new();
         private ConsoleModule? _module;
-        private DispatcherTimer _speedTimer;
 
         public ConsoleLimiterPanel()
         {
@@ -30,10 +29,6 @@ namespace InfinLimit.Windows.Controls
             RefreshEmptyState();
 
             ConsoleModule.OnStateChanged += () => Dispatcher.Invoke(RefreshState);
-
-            _speedTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
-            _speedTimer.Tick += (_, __) => UpdateSpeeds();
-            _speedTimer.Start();
         }
 
         public void SetModule(ConsoleModule module)
@@ -70,18 +65,6 @@ namespace InfinLimit.Windows.Controls
                 : $"{_devices.Count} console(s), {active} active";
         }
 
-        private void UpdateSpeeds()
-        {
-            foreach (var vm in _devices)
-            {
-                if (vm.IP == null) continue;
-                ConsoleModule.DLSpeedBps.TryGetValue(vm.IP, out var dl);
-                ConsoleModule.ULSpeedBps.TryGetValue(vm.IP, out var ul);
-                vm.DLSpeedBps = dl;
-                vm.ULSpeedBps = ul;
-            }
-        }
-
         // ── Enable toggle ────────────────────────────────────────────────────
 
         private void ChkEnabled_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
@@ -89,18 +72,16 @@ namespace InfinLimit.Windows.Controls
             if (_module == null) return;
             if (_module.IsEnabled)
             {
-                ConsoleModule.PortFilterActive = false;
-                ConsoleModule.Port2FilterActive = false;
-                _module.StopPort2Filter();
+                // Stop all active port filters then disconnect
+                ConsoleModule.PortFilterActive  = false;
+                if (ConsoleModule.Port2FilterActive) { ConsoleModule.Port2FilterActive = false; _module.StopPort2Filter(); }
                 _module.Disable();
             }
             else
             {
+                // Connect only — port filters stay off until their own checkboxes are toggled
                 ApplyDevices();
-                ConsoleModule.PortFilterActive = true;
-                ConsoleModule.Port2FilterActive = true;
                 _module.Enable();
-                _module.StartPort2Filter();
             }
             RefreshState();
         }
@@ -196,23 +177,6 @@ namespace InfinLimit.Windows.Controls
             }
         }
 
-        private void ApplyLimits_Click(object sender, RoutedEventArgs e)
-        {
-            ApplyDevices();
-
-            if (_module != null)
-            {
-                if (_module.IsEnabled) _module.Disable();
-                if (ConsoleModule.Devices.Count > 0)
-                    _module.Enable();
-                else
-                    _module.RefreshArpDevices();
-            }
-
-            RefreshState();
-            StatusLabel.Text = $"Applied — {ConsoleModule.Devices.Count} console(s)";
-        }
-
         // ── Port filter toggles ───────────────────────────────────────────────
 
         private void PortToggle_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
@@ -236,20 +200,9 @@ namespace InfinLimit.Windows.Controls
 
         private void SyncModuleToFilters()
         {
-            bool needsForward = ConsoleModule.PortFilterActive;
-            if (needsForward && !_module.IsEnabled)
-            {
-                ApplyDevices();
-                _module.Enable();
-            }
-            else if (!needsForward && _module.IsEnabled)
-            {
-                _module.Disable();
-            }
-            else if (needsForward && _module.IsEnabled)
-            {
+            // Only refresh the running filter — never auto-start or auto-stop the module
+            if (_module?.IsEnabled ?? false)
                 _module.RefreshFilter();
-            }
         }
 
         // ── Keybind capture ───────────────────────────────────────────────────

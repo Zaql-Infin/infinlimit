@@ -134,7 +134,7 @@
                 <TextBlock Text="Console must be on the same network as this PC"
                            Foreground="{StaticResource TextPrimary}"
                            FontFamily="Bahnschrift Light" FontSize="11"/>
-                <TextBlock Text="Add your console's IP, set limits, and click APPLY LIMITS to start"
+                <TextBlock Text="Add your console's IP below, then enable Console Limiter to connect"
                            Foreground="{StaticResource TextSecondary}"
                            FontFamily="Bahnschrift Light" FontSize="9" Margin="0,2,0,0"/>
             </StackPanel>
@@ -144,23 +144,7 @@
         <Border Background="{StaticResource BackColor}" BorderBrush="{StaticResource DividorColor}"
                 BorderThickness="1,1,1,0" CornerRadius="4,4,0,0" Padding="8,4">
             <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="48"/>
-                    <ColumnDefinition Width="48"/>
-                    <ColumnDefinition Width="68"/>
-                    <ColumnDefinition Width="42"/>
-                    <ColumnDefinition Width="42"/>
-                    <ColumnDefinition Width="36"/>
-                    <ColumnDefinition Width="24"/>
-                </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="CONSOLE" Style="{StaticResource ColHeader}" HorizontalAlignment="Left"/>
-                <TextBlock Grid.Column="1" Text="↓ LIVE"   Style="{StaticResource ColHeader}" Foreground="{StaticResource AccentColor}"/>
-                <TextBlock Grid.Column="2" Text="↑ LIVE"   Style="{StaticResource ColHeader}"/>
-                <TextBlock Grid.Column="3" Text="PRIORITY" Style="{StaticResource ColHeader}"/>
-                <TextBlock Grid.Column="4" Text="↓ LIM"    Style="{StaticResource ColHeader}"/>
-                <TextBlock Grid.Column="5" Text="↑ LIM"    Style="{StaticResource ColHeader}"/>
-                <TextBlock Grid.Column="6" Text="JITTER"   Style="{StaticResource ColHeader}"/>
+                <TextBlock Text="CONSOLE" Style="{StaticResource ColHeader}" HorizontalAlignment="Left"/>
             </Grid>
         </Border>
 
@@ -176,24 +160,9 @@
                                     <Border BorderBrush="{StaticResource DividorColor}"
                                             BorderThickness="0,0,0,1" Padding="8,5"
                                             Background="Transparent">
-                                        <Border.Style>
-                                            <Style TargetType="Border">
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding Priority}" Value="Blocked">
-                                                        <Setter Property="Opacity" Value="0.45"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Border.Style>
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="58"/>
-                                                <ColumnDefinition Width="58"/>
-                                                <ColumnDefinition Width="74"/>
-                                                <ColumnDefinition Width="48"/>
-                                                <ColumnDefinition Width="48"/>
-                                                <ColumnDefinition Width="40"/>
                                                 <ColumnDefinition Width="28"/>
                                             </Grid.ColumnDefinitions>
 
@@ -207,53 +176,8 @@
                                                            FontFamily="Bahnschrift Light" FontSize="10"/>
                                             </StackPanel>
 
-                                            <!-- ↓ Live speed -->
-                                            <TextBlock Grid.Column="1" Text="{Binding DLSpeedDisplay}"
-                                                       Foreground="{StaticResource AccentColor}"
-                                                       FontFamily="Bahnschrift Light" FontSize="10"
-                                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
-
-                                            <!-- ↑ Live speed -->
-                                            <TextBlock Grid.Column="2" Text="{Binding ULSpeedDisplay}"
-                                                       Foreground="{StaticResource TextSecondary}"
-                                                       FontFamily="Bahnschrift Light" FontSize="10"
-                                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
-
-                                            <!-- Priority dropdown -->
-                                            <ComboBox Grid.Column="3" Style="{StaticResource PriorityBox}"
-                                                      SelectedItem="{Binding Priority}"
-                                                      VerticalAlignment="Center">
-                                                <ComboBox.Resources>
-                                                    <Style TargetType="ComboBoxItem">
-                                                        <Setter Property="Background" Value="{StaticResource LightBackColor}"/>
-                                                        <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
-                                                        <Setter Property="FontFamily" Value="Bahnschrift Light"/>
-                                                        <Setter Property="FontSize" Value="10"/>
-                                                        <Setter Property="Padding" Value="4,2"/>
-                                                    </Style>
-                                                </ComboBox.Resources>
-                                            </ComboBox>
-
-                                            <!-- ↓ Limit kbps -->
-                                            <TextBox Grid.Column="4" Style="{StaticResource LimitBox}"
-                                                     Text="{Binding DownloadKbps, UpdateSourceTrigger=PropertyChanged}"
-                                                     VerticalAlignment="Center" Margin="2,0"
-                                                     ToolTip="Download limit kbps (0 = unlimited)"/>
-
-                                            <!-- ↑ Limit kbps -->
-                                            <TextBox Grid.Column="5" Style="{StaticResource LimitBox}"
-                                                     Text="{Binding UploadKbps, UpdateSourceTrigger=PropertyChanged}"
-                                                     VerticalAlignment="Center" Margin="2,0"
-                                                     ToolTip="Upload limit kbps (0 = unlimited)"/>
-
-                                            <!-- Jitter ms -->
-                                            <TextBox Grid.Column="6" Style="{StaticResource LimitBox}"
-                                                     Text="{Binding JitterMs, UpdateSourceTrigger=PropertyChanged}"
-                                                     VerticalAlignment="Center" Margin="2,0,0,0"
-                                                     ToolTip="Random delay 0–N ms per packet (0 = off)"/>
-
                                             <!-- Remove -->
-                                            <Button Grid.Column="7" Content="✕"
+                                            <Button Grid.Column="1" Content="✕"
                                                     Style="{StaticResource DangerButton}"
                                                     Width="22" Height="22" Padding="0" FontSize="9"
                                                     Margin="3,0,0,0" VerticalAlignment="Center"
@@ -333,43 +257,49 @@
                          VerticalAlignment="Center"/>
         </StackPanel>
 
-        <!-- Footer: status + apply -->
-        <Grid Margin="0,6,0,0">
-            <TextBlock x:Name="StatusLabel" HorizontalAlignment="Left" VerticalAlignment="Center"
-                       Foreground="{StaticResource TextSecondary}"
-                       FontFamily="Bahnschrift Light" FontSize="10"
-                       Text="No consoles — add an IP above"/>
-            <Button HorizontalAlignment="Right" Content="APPLY LIMITS"
-                    Style="{StaticResource ActionButton}" Click="ApplyLimits_Click"/>
-        </Grid>
+        <!-- Footer: status -->
+        <TextBlock x:Name="StatusLabel" Margin="0,6,0,0"
+                   Foreground="{StaticResource TextSecondary}"
+                   FontFamily="Bahnschrift Light" FontSize="10"
+                   Text="No consoles — add an IP above"/>
 
-        <!-- Port keybind section -->
-        <StackPanel Margin="0,8,0,0" Background="Transparent">
-            <Border BorderBrush="{StaticResource BorderColor}" BorderThickness="1,1,1,0" CornerRadius="5,5,0,0" Padding="10,7" Background="{StaticResource BackgroundSecondary}">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0" Text="3074-3173" VerticalAlignment="Center" Foreground="{StaticResource TextPrimary}" FontSize="12"/>
-                    <controls:Button x:Name="PortKeybindBtn" Grid.Column="1" Margin="8,0,8,0" Text="No keybind" Click="PortKeybind_Click" MinWidth="100" MaxWidth="180"/>
-                    <controls:Checkbox x:Name="PortToggleCB" Grid.Column="2" MouseLeftButtonDown="PortToggle_Click"/>
+        <!-- Port filter sections -->
+        <Border Margin="0,8,0,0" Background="{StaticResource BackColor}"
+                BorderBrush="{StaticResource DividorColor}" BorderThickness="1"
+                CornerRadius="5" Padding="10,8">
+            <StackPanel>
+                <!-- 3074-3173 -->
+                <TextBlock Text="3074 — 3173" Foreground="{StaticResource AccentColor}"
+                           FontFamily="Bahnschrift Light" FontSize="10" Margin="0,0,0,2"/>
+                <Grid MinHeight="28">
+                    <Label Content="Enabled" Style="{StaticResource RowLabel}" HorizontalAlignment="Left"/>
+                    <controls:Checkbox x:Name="PortToggleCB" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                       MouseLeftButtonDown="PortToggle_Click"/>
                 </Grid>
-            </Border>
-            <Border BorderBrush="{StaticResource BorderColor}" BorderThickness="1,0,1,1" CornerRadius="0,0,5,5" Padding="10,7" Background="{StaticResource BackgroundSecondary}">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0" Text="7500-7509" VerticalAlignment="Center" Foreground="{StaticResource TextPrimary}" FontSize="12"/>
-                    <controls:Button x:Name="Port2KeybindBtn" Grid.Column="1" Margin="8,0,8,0" Text="No keybind" Click="Port2Keybind_Click" MinWidth="100" MaxWidth="180"/>
-                    <controls:Checkbox x:Name="Port2ToggleCB" Grid.Column="2" MouseLeftButtonDown="Port2Toggle_Click"/>
+                <Grid MinHeight="28">
+                    <Label Content="Keybind" Style="{StaticResource RowLabel}" HorizontalAlignment="Left"/>
+                    <controls:Button x:Name="PortKeybindBtn" HorizontalAlignment="Right"
+                                     Text="No keybind" Click="PortKeybind_Click"/>
                 </Grid>
-            </Border>
-        </StackPanel>
+
+                <!-- Divider -->
+                <Border Height="1" Background="{StaticResource DividorColor}" Margin="0,6"/>
+
+                <!-- 7500-7509 -->
+                <TextBlock Text="7500 — 7509" Foreground="{StaticResource AccentColor}"
+                           FontFamily="Bahnschrift Light" FontSize="10" Margin="0,0,0,2"/>
+                <Grid MinHeight="28">
+                    <Label Content="Enabled" Style="{StaticResource RowLabel}" HorizontalAlignment="Left"/>
+                    <controls:Checkbox x:Name="Port2ToggleCB" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                       MouseLeftButtonDown="Port2Toggle_Click"/>
+                </Grid>
+                <Grid MinHeight="28">
+                    <Label Content="Keybind" Style="{StaticResource RowLabel}" HorizontalAlignment="Left"/>
+                    <controls:Button x:Name="Port2KeybindBtn" HorizontalAlignment="Right"
+                                     Text="No keybind" Click="Port2Keybind_Click"/>
+                </Grid>
+            </StackPanel>
+        </Border>
 
     </StackPanel>
 </UserControl>
