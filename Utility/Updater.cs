@@ -16,8 +16,8 @@ namespace InfinLimit.Utility
         //   2. Attach InfinLimit.exe as a release asset — that's it.
         //   3. Bump Version here each time you build so existing clients know
         //      a newer build is available.
-        public const int Version = 19;
-        public const string VersionString = "19.0.0";
+        public const int Version = 20;
+        public const string VersionString = "20.0.0";
 
         public const string RepoOwner = "Zaql-Infin";
         public const string RepoName  = "infinlimit";
@@ -122,11 +122,19 @@ namespace InfinLimit.Utility
             var current = Process.GetCurrentProcess().MainModule!.FileName;
             var bat     = Path.Combine(Path.GetTempPath(), "infinlimit_update.bat");
 
+            var installExe = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+                "InfinLimit", "InfinLimit.exe");
+
+            // Prefer the installed copy; fall back to current path if not found yet
+            var launchTarget = File.Exists(installExe) ? installExe : current;
+
             File.WriteAllText(bat,
                 "@echo off\r\n" +
                 "timeout /t 2 /nobreak >nul\r\n" +
                 $"\"{newSetup}\" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART\r\n" +
-                $"start \"\" \"{current}\"\r\n" +
+                "timeout /t 2 /nobreak >nul\r\n" +
+                $"start \"\" \"%ProgramFiles%\\InfinLimit\\InfinLimit.exe\"\r\n" +
                 $"del \"{newSetup}\"\r\n" +
                 "del \"%~f0\"\r\n"
             );
