@@ -1,9 +1,9 @@
-﻿name: Build & Release
+name: Build & Release
 
 on:
   push:
     tags:
-      - 'v*'   # trigger on v2, v3, v4, etc.
+      - 'v*'   # trigger on v5, v6, etc.
 
 permissions:
   contents: write
@@ -23,8 +23,26 @@ jobs:
       - name: Publish single-file exe
         run: dotnet publish InfinLimit.csproj -c Release -o publish
 
+      - name: Download Npcap installer
+        shell: pwsh
+        run: |
+          $url = "https://npcap.com/dist/npcap-1.80.exe"
+          Invoke-WebRequest -Uri $url -OutFile "Installer\npcap-installer.exe" -UseBasicParsing
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup --no-progress -y
+
+      - name: Build installer
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path installer-output | Out-Null
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "Installer\InfinLimit.iss"
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: publish/InfinLimit.exe
+          files: |
+            publish/InfinLimit.exe
+            installer-output/InfinLimitSetup.exe
           generate_release_notes: true
