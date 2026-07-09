@@ -154,6 +154,12 @@ namespace InfinLimit
                 ConsolePage.ElementFadeIn(time);
                 ConsoleButton.stayActive = true;
                 ConsoleButton.RefreshAppearance(null, null);
+                // Collapse TopBlock after fade so it can't bleed through ConsolePage
+                Dispatcher.BeginInvoke(async () =>
+                {
+                    await Task.Delay(time);
+                    TopBlock.Visibility = Visibility.Collapsed;
+                });
             }
             else
             {
@@ -164,6 +170,7 @@ namespace InfinLimit
                 Main.MinWidth = 290;
                 Main.MinHeight = 0;
 
+                TopBlock.Visibility = Visibility.Visible;
                 ConsolePage.ElementFadeOut(time);
                 TopBlock.ElementFadeIn(time);
                 ModuleSettingsBorder.ElementFadeIn(time);

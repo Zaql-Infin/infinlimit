@@ -79,9 +79,11 @@ namespace InfinLimit.Windows.Controls
             }
             else
             {
-                // Connect only — port filters stay off until their own checkboxes are toggled
+                // Connect, then re-apply any port filters that were already toggled on
                 ApplyDevices();
                 _module.Enable();
+                if (ConsoleModule.PortFilterActive)  _module.RefreshFilter();
+                if (ConsoleModule.Port2FilterActive) _module.StartPort2Filter();
             }
             RefreshState();
         }
@@ -183,7 +185,8 @@ namespace InfinLimit.Windows.Controls
         {
             if (_module == null) return;
             ConsoleModule.PortFilterActive = !ConsoleModule.PortFilterActive;
-            SyncModuleToFilters();
+            if (_module.IsEnabled) SyncModuleToFilters();
+            else StatusLabel.Text = "Enable Console Limiter first";
             Config.Save();
             RefreshState();
         }
@@ -192,8 +195,12 @@ namespace InfinLimit.Windows.Controls
         {
             if (_module == null) return;
             ConsoleModule.Port2FilterActive = !ConsoleModule.Port2FilterActive;
-            if (ConsoleModule.Port2FilterActive) _module.StartPort2Filter();
-            else _module.StopPort2Filter();
+            if (_module.IsEnabled)
+            {
+                if (ConsoleModule.Port2FilterActive) _module.StartPort2Filter();
+                else _module.StopPort2Filter();
+            }
+            else StatusLabel.Text = "Enable Console Limiter first";
             Config.Save();
             RefreshState();
         }
