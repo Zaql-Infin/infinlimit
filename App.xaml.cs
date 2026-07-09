@@ -197,8 +197,6 @@ namespace InfinLimit
         }
 
 
-        private static ImageBrush _backgroundBrush;
-
         private void TransparentWindowLoaded(object sender, RoutedEventArgs e)
         {
             if (sender is Window window)
@@ -206,27 +204,6 @@ namespace InfinLimit
                 EnableBlur(window);
                 window.Activated += Window_Activated;
                 window.Deactivated += Window_Deactivated;
-
-                if (window.Template.FindName("backg", window) is Border backg)
-                {
-                    if (_backgroundBrush == null)
-                    {
-                        try
-                        {
-                            var img = new BitmapImage(
-                                new Uri("pack://application:,,,/Windows/Assets/background.jpg"));
-                            img.Freeze();
-                            _backgroundBrush = new ImageBrush(img)
-                            {
-                                Stretch = Stretch.UniformToFill,
-                                Opacity = 0.4
-                            };
-                        }
-                        catch { }
-                    }
-                    if (_backgroundBrush != null)
-                        backg.Background = _backgroundBrush;
-                }
             }
         }
 

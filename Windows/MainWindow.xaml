@@ -34,19 +34,7 @@
     <Grid>
         <tb:TaskbarIcon x:Name="tbIcon" IconSource="Assets/appLogo.ico" Visibility="Hidden"/>
 
-        <Canvas Panel.ZIndex="0">
-            <Path
-                Data="{StaticResource BackgroundSvgPath}"
-                Stretch="Fill"
-                Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Window}}"
-                Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Window}}"
-                Fill="#6a6aff"
-                Opacity="0.05"
-                Stroke="#6a6aff"
-                StrokeThickness="0.1"/>
-        </Canvas>
-
-        <Grid x:Name="Main" MinWidth="290">
+<Grid x:Name="Main" MinWidth="290">
 
             <!-- Hidden volume slider (kept for code compatibility) -->
             <Slider x:Name="VolumeSlider" Visibility="Hidden"
