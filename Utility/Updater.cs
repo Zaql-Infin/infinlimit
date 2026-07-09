@@ -16,8 +16,8 @@ namespace InfinLimit.Utility
         //   2. Attach InfinLimit.exe as a release asset — that's it.
         //   3. Bump Version here each time you build so existing clients know
         //      a newer build is available.
-        public const int Version = 6;
-        public const string VersionString = "6.0.0";
+        public const int Version = 10;
+        public const string VersionString = "10.0.0";
 
         public const string RepoOwner = "Zaql-Infin";
         public const string RepoName  = "infinlimit";
@@ -114,15 +114,28 @@ namespace InfinLimit.Utility
 
         private static void LaunchPatcher(string newSetup)
         {
-            // Run the Inno Setup installer silently.
-            // /CLOSEAPPLICATIONS makes the installer close the running InfinLimit process
-            // before replacing the exe, then /RESTARTAPPLICATIONS relaunches it after.
+            // We shut ourselves down, so /RESTARTAPPLICATIONS never fires (the installer
+            // only restarts apps it closed itself). Instead, write a bat that:
+            //   1. Waits for this process to fully exit
+            //   2. Runs the installer silently
+            //   3. Relaunches the exe from the same path it was running at
+            var current = Process.GetCurrentProcess().MainModule!.FileName;
+            var bat     = Path.Combine(Path.GetTempPath(), "infinlimit_update.bat");
+
+            File.WriteAllText(bat,
+                "@echo off\r\n" +
+                "timeout /t 2 /nobreak >nul\r\n" +
+                $"\"{newSetup}\" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART\r\n" +
+                $"start \"\" \"{current}\"\r\n" +
+                $"del \"{newSetup}\"\r\n" +
+                "del \"%~f0\"\r\n"
+            );
+
             Process.Start(new ProcessStartInfo
             {
-                FileName        = newSetup,
-                Arguments       = "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS",
+                FileName        = bat,
                 UseShellExecute = true,
-                Verb            = "runas"
+                WindowStyle     = ProcessWindowStyle.Hidden
             });
 
             Application.Current.Dispatcher.Invoke(Application.Current.Shutdown);
