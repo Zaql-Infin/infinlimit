@@ -86,7 +86,8 @@ namespace InfinLimit
         public string CurrentModuleName => Config.Instance.CurrentModule;
         private PacketModuleBase CurrentModule => InterceptionManager.GetModule(CurrentModuleName);
         private List<Keycode> Keybind => Config.GetNamed(CurrentModuleName).Keybind;
-        private int SwapperFinalLoadoutNumber => Config.GetNamed("Swapper").GetSettings<int>("FinalLoadoutNumber");
+        private int _currentSwapProfile = 0;
+        private bool _suppressSwapperUI = false;
 
 
         public OverlayWindow overlay { get; set; }
@@ -119,6 +120,7 @@ namespace InfinLimit
             try
             {
                 InitializeComponent();
+                VersionBadge.Text = Updater.Version.ToString();
                 Logger.Info("InitializeComponent completed successfully");
             }
             catch (Exception ex)
@@ -175,6 +177,8 @@ namespace InfinLimit
                     Overlay.Border_MouseEnter(this, null);
                     Overlay.Border_MouseLeave(this, null);
                 }
+
+                CaptureGuard.Apply(this);
                     
 
                 SolidColorBrush accent;
@@ -292,21 +296,6 @@ namespace InfinLimit
                 }
             });
 
-            try
-            {
-                for (int i = 1; i <= 12; i++)
-                {
-                    var cb = FindName($"Swapper_Loadout{i}") as InfinLimit.Controls.Checkbox;
-                    if (cb != null)
-                    {
-                        cb.Click += Swapper_Loadout_CheckedChanged;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Error($"Error setting up loadout checkboxes: {ex}");
-            }
         }
 
         private void AltTabTracker(LinkedList<Keycode> keycodes)
@@ -355,6 +344,21 @@ namespace InfinLimit
 
         private void WindowTick(object? sender, EventArgs e)
         {
+            // Swapper status dot
+            try
+            {
+                var swapper = InterceptionManager.GetModule("Swapper") as SwapperModule;
+                if (swapper != null && SWAPPER_Panel.Visibility == Visibility.Visible)
+                {
+                    bool active = swapper.IsActivated;
+                    SwapperStatusLabel.Text = active ? "Swapping" : "Idle";
+                    SwapperStatusDot.Fill = active
+                        ? Application.Current.Resources["AccentColor"] as System.Windows.Media.SolidColorBrush
+                        : Application.Current.Resources["TextPrimary"] as System.Windows.Media.SolidColorBrush;
+                }
+            }
+            catch { }
+
             // MODULES
             try
             {
@@ -580,6 +584,11 @@ namespace InfinLimit
                 InstBufferCB.SetState(InstanceModule.Buffer);
                 InstSlowCB.SetState(InstanceModule.RateLimitingEnabled);
                 InstRateLimitTB.Text = InstanceModule.TargetBytesPerSecond.ToString();
+                ReconnectHoldTB.Text = ReconnectModule.HoldSeconds.ToString();
+                var rcBind = Config.GetNamed("Reconnect").Keybind;
+                ReconnectKeybindBtn.Text = rcBind.Any()
+                    ? string.Join(" + ", rcBind.Select(x => x.ToString().Replace("VK_", "")))
+                    : "No keybind";
                 INSTANCE_Panel.Visibility = Visibility.Visible;
             }
             else
@@ -589,58 +598,8 @@ namespace InfinLimit
 
             if (CurrentModule is SwapperModule)
             {
-                Logger.Info("CurrentModule is SwapperModule - setting SWAPPER_Panel to visible");
                 SWAPPER_Panel.Visibility = Visibility.Visible;
-
-                var swapperSettings = Config.GetNamed("Swapper");
-                var selected = swapperSettings.GetSettings<List<int>>("SelectedLoadouts") ?? new List<int>();
-                var endOn = swapperSettings.GetSettings<int>("EndOnLoadout");
-
-                Logger.Info($"Swapper settings loaded - Selected loadouts: {string.Join(", ", selected)}, End on: {endOn}");
-
-                // Restore loadout selection states with detailed logging
-                Logger.Info($"Swapper: Starting to restore {selected.Count} selected loadouts: [{string.Join(", ", selected)}]");
-                
-                for (int i = 1; i <= 12; i++)
-                {
-                    var cb = FindName($"Swapper_Loadout{i}") as InfinLimit.Controls.Checkbox;
-                    if (cb != null)
-                    {
-                        bool shouldBeSelected = selected.Contains(i);
-                        bool wasCheckedBefore = cb.Checked;
-                        
-                        cb.SetState(shouldBeSelected);
-                        
-                        bool isCheckedAfter = cb.Checked;
-                        Logger.Info($"Swapper: Loadout {i} - WasBefore: {wasCheckedBefore}, ShouldBe: {shouldBeSelected}, IsAfter: {isCheckedAfter}");
-                        
-                        // Double-check by forcing the state again if it didn't stick
-                        if (cb.Checked != shouldBeSelected)
-                        {
-                            Logger.Warning($"Swapper: State didn't stick for loadout {i}, forcing again");
-                            cb.SetState(shouldBeSelected);
-                        }
-                    }
-                    else
-                    {
-                        Logger.Error($"Swapper: Checkbox Swapper_Loadout{i} not found!");
-                    }
-                }
-                
-                Logger.Info($"Swapper: Restored {selected.Count} selected loadouts to UI");
-                
-                // Update final loadout number
-                var finalLoadoutNum = swapperSettings.GetSettings<int>("FinalLoadoutNumber");
-                if (finalLoadoutNum == 0) finalLoadoutNum = 1; // Default to 1
-                SwapperFinalLoadout.Text = finalLoadoutNum.ToString();
-                
-                // Update keybind button texts
-                UpdateSwapperKeybindButtonTexts();
-                
-                // Update duration
-                var duration = swapperSettings.GetSettings<int>("LoopDuration");
-                if (duration == 0) duration = 5000; // Default to 5 seconds
-                SwapperDuration.Text = duration.ToString();
+                LoadSwapProfileToUI(_currentSwapProfile);
             }
             else
             { API_Panel.Visibility = Visibility.Collapsed;
@@ -679,12 +638,10 @@ namespace InfinLimit
                         listening.Add(button, PvpModule.OutboundKeybind);
                     else if (button == PveSlowOutbound)
                         listening.Add(button, PveModule.SlowOutboundKeybind);
-                    else if (button == SwapperModule3074UL)
-                        listening.Add(button, SwapperModule.Module3074ULKeybind);
-                    else if (button == SwapperModule3074DL)
-                        listening.Add(button, SwapperModule.Module3074DLKeybind);
-                    else if (button == SwapperModule27kUL)
-                        listening.Add(button, SwapperModule.Module27kULKeybind);
+                    else if (button == SwapperKeybindBtn)
+                        listening.Add(button, SwapperModule.Profiles[_currentSwapProfile].Keybind);
+                    else if (button == ReconnectKeybindBtn)
+                        listening.Add(button, Config.GetNamed("Reconnect").Keybind);
                     
                     //button.Background = new SolidColorBrush(Color.FromArgb(0x88, 0xD9, 0xCC, 0xD9));
                     if (listening.Count == 1)
@@ -742,6 +699,8 @@ namespace InfinLimit
                 foreach (var b in listening.Values)
                     b.AddRange(keycodes);
 
+                Config.Save();
+
                 Dispatcher.Invoke(DispatcherPriority.Background, () =>
                 {
                     try
@@ -753,152 +712,137 @@ namespace InfinLimit
                 });
             }
         }
-        // Handler for checkbox changes
-        private void Swapper_Loadout_CheckedChanged(object sender, RoutedEventArgs e)
+        private void LoadSwapProfileToUI(int idx)
         {
-            var cb = sender as InfinLimit.Controls.Checkbox;
-            if (cb != null)
+            _suppressSwapperUI = true;
+            try
             {
-                cb.Background = cb.Checked
-                    ? (SolidColorBrush)Application.Current.Resources["AccentColor"]
-                    : (SolidColorBrush)Application.Current.Resources["InactiveColor"];
-            }
-
-            var swapper = InterceptionManager.GetModule("Swapper") as SwapperModule;
-            if (swapper != null)
-            {
-                for (int i = 1; i <= 12; i++)
+                var p = SwapperModule.Profiles[idx];
+                SwapperProfileCounter.Text = $"{idx + 1} / 5";
+                SwapperProfileName.Text = p.Name;
+                for (int i = 1; i <= 20; i++)
                 {
-                    var checkbox = FindName($"Swapper_Loadout{i}") as InfinLimit.Controls.Checkbox;
-                    bool isSelected = checkbox != null && checkbox.Checked;
-                    swapper.SetLoadoutSelection(i, isSelected);
+                    var cb = FindName($"Swapper_Slot{i}") as Controls.Checkbox;
+                    cb?.SetState(p.LoadoutEnabled[i - 1]);
                 }
+                SwapperFinalSlot.Text = p.EndingLoadout.ToString();
+                SwapperSwapDuration.Text = p.SwapDuration.ToString();
+                SwapperDelayBetween.Text = p.SwapDelay.ToString();
+                SwapperUntickDelayTB.Text = p.UntickDelay.ToString();
+                SwapperPort3074UL.SetState(p.Port3074);
+                SwapperPort27kUL.SetState(p.Port27k);
+                SwapperPort3074DL.SetState(p.Packet3074DL);
+                SwapperDisableBuffering.SetState(p.AutoDisableBuffering);
+                SwapperCloseInventoryCB.SetState(p.CloseInventory);
+                SwapperTickFullGame.SetState(p.FullGame);
+                SwapperOpenInventoryCB.SetState(p.OpenInventory);
+                SwapperKeybindBtn.Text = p.Keybind.Any()
+                    ? string.Join(" + ", p.Keybind.Select(x => x.ToString().Replace("VK_", "")))
+                    : "No keybind";
             }
+            finally { _suppressSwapperUI = false; }
         }
 
-        // Handler for loadout checkbox clicks
-        private void Swapper_LoadoutButton_Click(object sender, RoutedEventArgs e)
+        private void SwapperProfilePrev_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is Controls.Checkbox checkbox)
-            {
-                // Extract loadout number from checkbox name (e.g., "Swapper_Loadout3" -> 3)
-                var checkboxName = checkbox.Name;
-                if (checkboxName.StartsWith("Swapper_Loadout") && 
-                    int.TryParse(checkboxName.Replace("Swapper_Loadout", ""), out int loadoutNumber))
-                {
-                    var swapperSettings = Config.GetNamed("Swapper");
-                    var selectedLoadouts = swapperSettings.GetSettings<List<int>>("SelectedLoadouts") ?? new List<int>();
-                    
-                    if (checkbox.Checked)
-                    {
-                        // Add loadout to selection if not already present
-                        if (!selectedLoadouts.Contains(loadoutNumber))
-                        {
-                            selectedLoadouts.Add(loadoutNumber);
-                            Logger.Info($"Swapper: Added loadout {loadoutNumber} to selection");
-                        }
-                    }
-                    else
-                    {
-                        // Remove loadout from selection
-                        if (selectedLoadouts.Contains(loadoutNumber))
-                        {
-                            selectedLoadouts.Remove(loadoutNumber);
-                            Logger.Info($"Swapper: Removed loadout {loadoutNumber} from selection");
-                        }
-                    }
-                    
-                    // Save the updated list to settings
-                    swapperSettings.Settings["SelectedLoadouts"] = selectedLoadouts;
-                    
-                    // Update the SwapperModule instance if it exists
-                    var swapperModule = InterceptionManager.GetModule("Swapper") as SwapperModule;
-                    swapperModule?.SetLoadoutSelection(loadoutNumber, checkbox.Checked);
-                    
-                    Config.Save();
-                    
-                    Logger.Info($"Swapper: Current selected loadouts: {string.Join(", ", selectedLoadouts.OrderBy(x => x))}");
-                }
-            }
+            _currentSwapProfile = (_currentSwapProfile - 1 + 5) % 5;
+            SwapperModule.CurrentProfileIndex = _currentSwapProfile;
+            LoadSwapProfileToUI(_currentSwapProfile);
         }
-        
-        // Handler for final loadout number text change
-        private void SwapperFinalLoadout_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+
+        private void SwapperProfileNext_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is TextBox textBox)
-            {
-                // Validate input is a number between 1-12
-                if (int.TryParse(textBox.Text, out int loadoutNumber) && loadoutNumber >= 1 && loadoutNumber <= 12)
-                {
-                    var swapperSettings = Config.GetNamed("Swapper");
-                    swapperSettings.Settings["FinalLoadoutNumber"] = loadoutNumber;
-                    Config.Save();
-                    
-                    // Update the SwapperModule with the new final loadout number
-                    var swapperModule = InterceptionManager.GetModule("Swapper") as SwapperModule;
-                    swapperModule?.SetFinalLoadout(loadoutNumber);
-                    
-                    Logger.Info($"Swapper: Final loadout set to {loadoutNumber}");
-                }
-                else if (!string.IsNullOrEmpty(textBox.Text))
-                {
-                    // Invalid input, revert to previous valid value
-                    var swapperSettings = Config.GetNamed("Swapper");
-                    var currentValue = swapperSettings.GetSettings<int>("FinalLoadoutNumber");
-                    if (currentValue == 0) currentValue = 1;
-                    textBox.Text = currentValue.ToString();
-                    textBox.SelectionStart = textBox.Text.Length; // Move cursor to end
-                }
-            }
+            _currentSwapProfile = (_currentSwapProfile + 1) % 5;
+            SwapperModule.CurrentProfileIndex = _currentSwapProfile;
+            LoadSwapProfileToUI(_currentSwapProfile);
         }
-        
-        // Helper method to update keybind button texts
-        private void UpdateSwapperKeybindButtonTexts()
+
+        private void SwapperProfileName_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
         {
-            // Update 3074 UL button text
-            SwapperModule3074UL.Text = SwapperModule.Module3074ULKeybind.Any()
-                ? String.Join(" + ", SwapperModule.Module3074ULKeybind.Select(x => x.ToString().Replace("VK_", "")))
-                : "No keybind";
-            
-            // Update 3074 DL button text
-            SwapperModule3074DL.Text = SwapperModule.Module3074DLKeybind.Any()
-                ? String.Join(" + ", SwapperModule.Module3074DLKeybind.Select(x => x.ToString().Replace("VK_", "")))
-                : "No keybind";
-            
-            // Update 27k UL button text
-            SwapperModule27kUL.Text = SwapperModule.Module27kULKeybind.Any()
-                ? String.Join(" + ", SwapperModule.Module27kULKeybind.Select(x => x.ToString().Replace("VK_", "")))
-                : "No keybind";
+            if (_suppressSwapperUI || !(sender is TextBox tb)) return;
+            SwapperModule.Profiles[_currentSwapProfile].Name = tb.Text;
         }
-        
-        // Handler for duration text change
-        private void SwapperDuration_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+
+        private void Swapper_SlotClick(object sender, RoutedEventArgs e)
         {
-            if (sender is TextBox textBox)
-            {
-                // Validate input is a positive number
-                if (int.TryParse(textBox.Text, out int duration) && duration > 0)
-                {
-                    var swapperSettings = Config.GetNamed("Swapper");
-                    swapperSettings.Settings["LoopDuration"] = duration;
-                    Config.Save();
-                    
-                    // Update the SwapperModule with the new duration
-                    var swapperModule = InterceptionManager.GetModule("Swapper") as SwapperModule;
-                    swapperModule?.SetLoopDuration(duration);
-                    
-                    Logger.Info($"Swapper: Loop duration set to {duration}ms");
-                }
-                else if (!string.IsNullOrEmpty(textBox.Text))
-                {
-                    // Invalid input, revert to previous valid value
-                    var swapperSettings = Config.GetNamed("Swapper");
-                    var currentValue = swapperSettings.GetSettings<int>("LoopDuration");
-                    if (currentValue == 0) currentValue = 5000; // Default to 5 seconds
-                    textBox.Text = currentValue.ToString();
-                    textBox.SelectionStart = textBox.Text.Length; // Move cursor to end
-                }
-            }
+            if (!(sender is Controls.Checkbox cb)) return;
+            if (int.TryParse(cb.Name.Replace("Swapper_Slot", ""), out int n) && n >= 1 && n <= 20)
+                SwapperModule.Profiles[_currentSwapProfile].LoadoutEnabled[n - 1] = cb.Checked;
         }
-    }   
+
+        private void SwapperFinalSlot_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+        {
+            if (_suppressSwapperUI || !(sender is TextBox tb)) return;
+            if (int.TryParse(tb.Text, out int v) && v >= 1 && v <= 20)
+                SwapperModule.Profiles[_currentSwapProfile].EndingLoadout = v;
+        }
+
+        private void SwapperSwapDuration_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+        {
+            if (_suppressSwapperUI || !(sender is TextBox tb)) return;
+            if (int.TryParse(tb.Text, out int v) && v > 0)
+                SwapperModule.Profiles[_currentSwapProfile].SwapDuration = v;
+        }
+
+        private void SwapperDelayBetween_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+        {
+            if (_suppressSwapperUI || !(sender is TextBox tb)) return;
+            if (int.TryParse(tb.Text, out int v) && v >= 0)
+                SwapperModule.Profiles[_currentSwapProfile].SwapDelay = v;
+        }
+
+        private void SwapperUntickDelayTB_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+        {
+            if (_suppressSwapperUI || !(sender is TextBox tb)) return;
+            if (int.TryParse(tb.Text, out int v) && v >= 0)
+                SwapperModule.Profiles[_currentSwapProfile].UntickDelay = v;
+        }
+
+        private void SwapperPort3074UL_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Controls.Checkbox cb)
+                SwapperModule.Profiles[_currentSwapProfile].Port3074 = cb.Checked;
+        }
+
+        private void SwapperPort27kUL_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Controls.Checkbox cb)
+                SwapperModule.Profiles[_currentSwapProfile].Port27k = cb.Checked;
+        }
+
+        private void SwapperPort3074DL_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Controls.Checkbox cb)
+                SwapperModule.Profiles[_currentSwapProfile].Packet3074DL = cb.Checked;
+        }
+
+        private void SwapperDisableBuffering_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Controls.Checkbox cb)
+                SwapperModule.Profiles[_currentSwapProfile].AutoDisableBuffering = cb.Checked;
+        }
+
+        private void SwapperCloseInventoryCB_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Controls.Checkbox cb)
+                SwapperModule.Profiles[_currentSwapProfile].CloseInventory = cb.Checked;
+        }
+
+        private void SwapperTickFullGame_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Controls.Checkbox cb)
+                SwapperModule.Profiles[_currentSwapProfile].FullGame = cb.Checked;
+        }
+
+        private void SwapperOpenInventoryCB_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Controls.Checkbox cb)
+                SwapperModule.Profiles[_currentSwapProfile].OpenInventory = cb.Checked;
+        }
+
+        private void SwapperSaveAll_Click(object sender, RoutedEventArgs e)
+        {
+            Config.Save();
+        }
+    }
 }  

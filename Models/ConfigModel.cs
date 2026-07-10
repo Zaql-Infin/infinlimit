@@ -37,6 +37,7 @@ namespace InfinLimit.Models
         public bool Overlay_DisplayOnlyTogglable { get; set; } = true;
         public int Overlay_LeftOffset { get; set; } = 0;
         public int Overlay_BottomOffset { get; set; } = 0;
+        public bool Overlay_HideFromCapture { get; set; } = false;
         public bool Overlay_FreePosition { get; set; } = true;
         public double Overlay_FreeX { get; set; } = 24;
         public double Overlay_FreeY { get; set; } = 800;

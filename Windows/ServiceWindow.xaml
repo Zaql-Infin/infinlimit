@@ -182,9 +182,14 @@
                         <Label Content="Count complete dungeons"/>
                     </Grid>
 
+                    <Grid>
+                        <controls:Checkbox x:Name="StreamProof" Click="StreamProof_Click"/>
+                        <Label Content="Stream proof"/>
+                    </Grid>
 
 
-                    <Line Margin="5,3" X1="0" X2="270" 
+
+                    <Line Margin="5,3" X1="0" X2="270"
                           StrokeThickness="1" Stroke="{StaticResource InactiveColor}"/>
 
                     <!-- AHK SETTINGS -->

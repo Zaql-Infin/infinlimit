@@ -78,6 +78,7 @@ namespace InfinLimit
             ShowAllTimers.SetState(!Config.Instance.Settings.Overlay_DisplayOnlyTogglable);
             CountRaids.SetState(Config.Instance.Settings.Tracker_CountRaids);
             CountDungeons.SetState(Config.Instance.Settings.Tracker_CountDungeons);
+            StreamProof.SetState(Config.Instance.Settings.Overlay_HideFromCapture);
             OverlayX.Text = Config.Instance.Settings.Overlay_LeftOffset.ToString();
             OverlayY.Text = Config.Instance.Settings.Overlay_BottomOffset.ToString();
             BungieName.Text = Config.Instance.Settings.Tracker_BungieName ?? "Name#0000";
@@ -371,6 +372,13 @@ namespace InfinLimit
         {
             Config.Instance.Settings.AltTabSupressKeybinds = KeybindsSuppress.Checked;
             Config.Save();
+        }
+
+        private void StreamProof_Click(object sender, RoutedEventArgs e)
+        {
+            Config.Instance.Settings.Overlay_HideFromCapture = StreamProof.Checked;
+            Config.Save();
+            InfinLimit.Utility.CaptureGuard.ApplyToAll();
         }
     }
 }
