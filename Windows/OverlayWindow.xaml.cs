@@ -48,8 +48,8 @@ namespace InfinLimit.Windows
         private const int GWL_EXSTYLE = -20;
 
         private readonly DispatcherTimer _timer;
-        private readonly TimeSpan _activeInterval = TimeSpan.FromMilliseconds(500);
-        private readonly TimeSpan _idleInterval   = TimeSpan.FromSeconds(1.5);
+        private readonly TimeSpan _activeInterval = TimeSpan.FromSeconds(2);
+        private readonly TimeSpan _idleInterval   = TimeSpan.FromSeconds(5);
 
         private List<FeatureRow>     _featureRows = new();
         private List<DualFeatureRow> _dualRows    = new();
@@ -306,8 +306,6 @@ namespace InfinLimit.Windows
                 v.timer.Content = FormatElapsed(on && since != DateTime.MinValue ? DateTime.Now - since : TimeSpan.Zero);
             }
 
-            InvalidateMeasure();
-            UpdateLayout();
         }
 
         private void Tick(object? sender, EventArgs e)
