@@ -64,6 +64,7 @@ namespace InfinLimit.Windows
         private Ellipse _raidCountDot;
 
         private bool _dragging;
+        private DateTime _openedAt = DateTime.Now;
 
         private static Process  cachedProcess        = null;
         private static bool     LastGameFocusResult  = false;
@@ -311,7 +312,8 @@ namespace InfinLimit.Windows
 
         private void Tick(object? sender, EventArgs e)
         {
-            if (!Config.Instance.Settings.Overlay_FreePosition && !CheckGameFocus())
+            bool inGrace = DateTime.Now - _openedAt < TimeSpan.FromSeconds(4);
+            if (!inGrace && !Config.Instance.Settings.Overlay_FreePosition && !CheckGameFocus())
             {
                 Visibility = Visibility.Collapsed;
                 _timer.Interval = _idleInterval;
@@ -348,7 +350,6 @@ namespace InfinLimit.Windows
 
         private void PositionFree()
         {
-            if (!Config.Instance.Settings.Overlay_FreePosition) return;
             Left = Config.Instance.Settings.Overlay_FreeX;
             Top  = Config.Instance.Settings.Overlay_FreeY;
             ClampToScreen();
@@ -360,8 +361,16 @@ namespace InfinLimit.Windows
             if (cachedProcess == null) return false;
             if (!GetWindowRect(cachedProcess.MainWindowHandle, out var rect)) return false;
 
-            Left = rect.Left + 24 + Config.Instance.Settings.Overlay_LeftOffset;
-            Top  = rect.Bottom - 140 - Config.Instance.Settings.Overlay_BottomOffset;
+            // GetWindowRect returns physical pixels; WPF Left/Top are logical DIP units.
+            // Convert to avoid off-screen placement on scaled displays.
+            var src = System.Windows.Interop.HwndSource.FromHwnd(
+                new System.Windows.Interop.WindowInteropHelper(this).Handle);
+            if (src?.CompositionTarget == null) return false;
+            var m = src.CompositionTarget.TransformFromDevice;
+            var logical = m.Transform(new System.Windows.Point(rect.Left, rect.Bottom));
+
+            Left = logical.X + 24 + Config.Instance.Settings.Overlay_LeftOffset;
+            Top  = logical.Y - 140 - Config.Instance.Settings.Overlay_BottomOffset;
             ClampToScreen();
             return true;
         }
