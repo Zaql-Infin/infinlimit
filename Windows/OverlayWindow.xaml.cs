@@ -1,4 +1,3 @@
-using InfinLimit.Controls;
 using InfinLimit.Interception;
 using InfinLimit.Interception.Modules;
 using InfinLimit.Interception.PacketProviders;
@@ -10,8 +9,11 @@ using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
+using System.Windows.Shapes;
 using System.Windows.Threading;
 
 namespace InfinLimit.Windows
@@ -28,8 +30,13 @@ namespace InfinLimit.Windows
         private readonly TimeSpan _activeInterval = TimeSpan.FromMilliseconds(500);
         private readonly TimeSpan _idleInterval   = TimeSpan.FromSeconds(1.5);
 
-        private readonly List<EnabledModuleTimer> _moduleTimers = new();
-        private PincushionEffect _pincushion;
+        // Each module icon: the Path to tint and the Label to show timer text
+        private record ModuleIcon(PacketModuleBase Module, Path Icon, Label Timer);
+        private readonly List<ModuleIcon> _icons = new();
+
+        private static readonly Brush ActiveBrush   = new SolidColorBrush(Color.FromArgb(0xee, 0xff, 0xff, 0xff));
+        private static readonly Brush InactiveBrush = new SolidColorBrush(Color.FromArgb(0x50, 0xff, 0xff, 0xff));
+        private static readonly Brush TimerBrush    = new SolidColorBrush(Color.FromArgb(0xcc, 0xff, 0xff, 0xff));
 
         private static Process  cachedProcess       = null;
         private static bool     LastGameFocusResult = false;
@@ -54,18 +61,11 @@ namespace InfinLimit.Windows
             var handle = new WindowInteropHelper(this).Handle;
             if (handle == IntPtr.Zero) return;
             int style = GetWindowLong(handle, GWL_EXSTYLE);
-            // WS_EX_TOOLWINDOW: hide from Alt-Tab.
-            // WS_EX_TRANSPARENT: pass all clicks through to the game beneath.
-            // No WS_EX_LAYERED needed — AllowsTransparency handles compositing.
             style |= WS_EX_TOOLWINDOW | WS_EX_TRANSPARENT;
             SetWindowLong(handle, GWL_EXSTYLE, style);
         }
 
-        public void RefreshModules()
-        {
-            foreach (var emt in _moduleTimers)
-                emt.UpdateTimer();
-        }
+        public void RefreshModules() => RebuildRows();
 
         public OverlayWindow()
         {
@@ -78,40 +78,100 @@ namespace InfinLimit.Windows
             Closed += (_, __) => { Current = null; _timer.Stop(); };
             Loaded += (_, __) =>
             {
-                BuildModuleTimers();
-                ApplyPincushion();
+                BuildIcons();
+                TryFollowWindow();
+                RebuildRows();
                 _timer.Start();
             };
         }
 
-        private void BuildModuleTimers()
+        // ── build icon strip ──────────────────────────────────────────────────────
+
+        private void BuildIcons()
         {
             Modules.Children.Clear();
-            _moduleTimers.Clear();
+            _icons.Clear();
 
-            // Module strip order mirrors DarkLimiter: PVE, PVP, 30K instance, API, GamePauser
             var names = new[] { "PVE", "PVP", "З0K", "API Block", "GamePauser" };
             foreach (var name in names)
             {
-                if (InterceptionManager.GetModule(name) == null) continue;
-                var emt = new EnabledModuleTimer(name);
-                _moduleTimers.Add(emt);
-                Modules.Children.Add(emt);
-            }
-        }
+                var mod = InterceptionManager.GetModule(name);
+                if (mod == null) continue;
 
-        private void ApplyPincushion()
-        {
-            _pincushion = new PincushionEffect { Power = -0.31f };
-            Root.Effect = _pincushion;
+                var icon = new Path
+                {
+                    Data            = mod.Icon,
+                    Stretch         = Stretch.Uniform,
+                    Width           = 28,
+                    Height          = 28,
+                    Fill            = InactiveBrush,
+                    VerticalAlignment = VerticalAlignment.Center,
+                };
+                icon.Effect = new System.Windows.Media.Effects.DropShadowEffect
+                {
+                    ShadowDepth = 0,
+                    Color       = Colors.Black,
+                    BlurRadius  = 4,
+                };
+
+                var timerLabel = new Label
+                {
+                    Content             = "",
+                    Foreground          = TimerBrush,
+                    FontFamily          = new FontFamily("Bahnschrift Light"),
+                    FontWeight          = FontWeights.Bold,
+                    FontSize            = 14,
+                    Padding             = new Thickness(0),
+                    Margin              = new Thickness(2, 0, 8, 0),
+                    VerticalContentAlignment = VerticalAlignment.Center,
+                    Visibility          = Visibility.Collapsed,
+                };
+
+                var cell = new StackPanel
+                {
+                    Orientation       = Orientation.Horizontal,
+                    Margin            = new Thickness(6, 0, 0, 0),
+                    VerticalAlignment = VerticalAlignment.Center,
+                };
+                cell.Children.Add(icon);
+                cell.Children.Add(timerLabel);
+
+                Modules.Children.Add(cell);
+                _icons.Add(new ModuleIcon(mod, icon, timerLabel));
+            }
         }
 
         // ── update logic ─────────────────────────────────────────────────────────
 
+        private static string FormatElapsed(TimeSpan t)
+            => t <= TimeSpan.Zero ? "" : (t.TotalHours >= 1 ? t.ToString(@"h\:mm\:ss") : t.ToString(@"mm\:ss"));
+
         private void RebuildRows()
         {
-            foreach (var emt in _moduleTimers)
-                emt.UpdateTimer();
+            foreach (var mi in _icons)
+            {
+                bool active = mi.Module.IsActivated;
+                mi.Icon.Fill = active ? ActiveBrush : InactiveBrush;
+
+                if (active && mi.Module.StartTime != DateTime.MinValue)
+                {
+                    var elapsed = DateTime.Now - mi.Module.StartTime;
+                    var text    = FormatElapsed(elapsed);
+                    if (!string.IsNullOrEmpty(text))
+                    {
+                        mi.Timer.Content    = text;
+                        mi.Timer.Visibility = Visibility.Visible;
+                    }
+                    else
+                    {
+                        mi.Timer.Visibility = Visibility.Collapsed;
+                    }
+                }
+                else
+                {
+                    mi.Timer.Visibility = Visibility.Collapsed;
+                }
+            }
 
             // Instance timer from 30k provider
             if (InterceptionManager.GetProvider("30000") is _30000_Provider prov30k)
@@ -120,9 +180,7 @@ namespace InfinLimit.Windows
                 if (dur > TimeSpan.Zero)
                 {
                     InstanceTimerLabel.Visibility = Visibility.Visible;
-                    InstanceTimerLabel.Content = dur.TotalHours >= 1
-                        ? dur.ToString(@"hh\:mm\:ss")
-                        : dur.ToString(@"mm\:ss");
+                    InstanceTimerLabel.Content    = FormatElapsed(dur);
                 }
                 else
                 {
@@ -178,7 +236,6 @@ namespace InfinLimit.Windows
             var src = HwndSource.FromHwnd(new WindowInteropHelper(this).Handle);
             if (src?.CompositionTarget == null) return false;
 
-            // GetWindowRect returns physical pixels; WPF coordinates are logical DIPs.
             var m       = src.CompositionTarget.TransformFromDevice;
             var topLeft = m.Transform(new Point(rect.Left, rect.Top));
             var logSize = m.Transform(new Point(rect.Right - rect.Left, rect.Bottom - rect.Top));
@@ -187,13 +244,6 @@ namespace InfinLimit.Windows
             Top    = topLeft.Y;
             Width  = logSize.X;
             Height = logSize.Y;
-
-            // Shader expects physical pixel dimensions for correct distortion math
-            if (_pincushion != null)
-            {
-                _pincushion.Width  = (float)(rect.Right  - rect.Left);
-                _pincushion.Height = (float)(rect.Bottom - rect.Top);
-            }
 
             return true;
         }

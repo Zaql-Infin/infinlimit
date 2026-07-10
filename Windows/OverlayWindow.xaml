@@ -39,18 +39,8 @@
                     VerticalAlignment="Top" HorizontalAlignment="Left"
                     Margin="0,44,0,0" IsHitTestVisible="False">
 
-            <!-- EnabledModuleTimer icons (populated in code-behind) -->
-            <StackPanel x:Name="Modules" Orientation="Horizontal">
-                <StackPanel.Resources>
-                    <Style TargetType="controls:EnabledModuleTimer">
-                        <Setter Property="Padding" Value="0,2,3,4"/>
-                        <Setter Property="VerticalAlignment" Value="Center"/>
-                        <Setter Property="Foreground" Value="{StaticResource ModuleBrush}"/>
-                        <Setter Property="MinOpacity" Value="1.0"/>
-                        <Setter Property="Scale" Value="0.74"/>
-                    </Style>
-                </StackPanel.Resources>
-            </StackPanel>
+            <!-- Module icons populated in code-behind (Path+Label per module) -->
+            <StackPanel x:Name="Modules" Orientation="Horizontal"/>
 
             <!-- Instance / session timer row -->
             <StackPanel x:Name="Counters" Orientation="Horizontal">
