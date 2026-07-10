@@ -291,7 +291,7 @@ namespace InfinLimit.Windows
         private void Tick(object? sender, EventArgs e)
         {
             // While dragging: keep the overlay visible and skip all repositioning
-            if (_dragHandler != null)
+            if (_isDragging)
             {
                 if (Visibility != Visibility.Visible) Visibility = Visibility.Visible;
                 RebuildRows();
@@ -329,39 +329,54 @@ namespace InfinLimit.Windows
 
         // ── drag / free-position ─────────────────────────────────────────────────
 
-        private MouseButtonEventHandler _dragHandler;
+        private const int WM_NCHITTEST = 0x0084;
+        private const int HTCAPTION    = 2;
+
+        private bool _isDragging = false;
+        private HwndSourceHook _dragHook;
+
+        private IntPtr DragWndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+        {
+            // Tell Windows every part of this window is the title bar → native drag
+            if (msg == WM_NCHITTEST)
+            {
+                handled = true;
+                return new IntPtr(HTCAPTION);
+            }
+            return IntPtr.Zero;
+        }
 
         public void EnableDrag()
         {
-            // Make sure the overlay is on screen before the user tries to drag it
+            if (_isDragging) return;
+            _isDragging = true;
+
             Visibility = Visibility.Visible;
-            Activate();
+
+            var handle = new WindowInteropHelper(this).Handle;
 
             // Remove WS_EX_TRANSPARENT so the window receives mouse input
-            var handle = new WindowInteropHelper(this).Handle;
-            int style  = GetWindowLong(handle, GWL_EXSTYLE);
+            int style = GetWindowLong(handle, GWL_EXSTYLE);
             style &= ~WS_EX_TRANSPARENT;
             SetWindowLong(handle, GWL_EXSTYLE, style);
 
-            _dragHandler = (_, e) =>
-            {
-                if (e.LeftButton == MouseButtonState.Pressed)
-                {
-                    Activate();
-                    DragMove();
-                }
-            };
-            MouseLeftButtonDown += _dragHandler;
+            // Hook WndProc: return HTCAPTION so Windows handles the drag natively
+            _dragHook = DragWndProc;
+            HwndSource.FromHwnd(handle).AddHook(_dragHook);
 
             Config.Instance.Settings.Overlay_FreePosition = true;
         }
 
         public void DisableDrag()
         {
-            if (_dragHandler != null)
+            if (!_isDragging) return;
+            _isDragging = false;
+
+            var handle = new WindowInteropHelper(this).Handle;
+            if (handle != IntPtr.Zero && _dragHook != null)
             {
-                MouseLeftButtonDown -= _dragHandler;
-                _dragHandler = null;
+                HwndSource.FromHwnd(handle)?.RemoveHook(_dragHook);
+                _dragHook = null;
             }
 
             // Save current position then re-apply click-through
