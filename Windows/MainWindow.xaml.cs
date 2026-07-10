@@ -500,6 +500,11 @@ namespace InfinLimit
                     ? String.Join(" + ", PveModule.SlowOutboundKeybind.Select(x => x.ToString().Replace("VK_", "")))
                     : "No keybind";
 
+                var motesBind = Config.Instance.Settings.ZaqlMotes_Keybind;
+                MotesKeybindBtn.Text = motesBind.Any()
+                    ? String.Join(" + ", motesBind.Select(x => x.ToString().Replace("VK_", "")))
+                    : "No keybind";
+
                 PVE_Panel.Visibility = PveInCB.Visibility = Visibility.Visible;
                 ActivationGrid.Visibility = Visibility.Collapsed;
             }
@@ -610,6 +615,11 @@ namespace InfinLimit
         }
 
 
+        private void MotesBtnClick(object sender, RoutedEventArgs e)
+        {
+            Task.Run(Interception.MotesModule.Run);
+        }
+
         // Keybind logic
         private Dictionary<Controls.Button, List<Keycode>> listening = new ();
         private DateTime lastUpdated = DateTime.MinValue;
@@ -642,6 +652,8 @@ namespace InfinLimit
                         listening.Add(button, SwapperModule.Profiles[_currentSwapProfile].Keybind);
                     else if (button == ReconnectKeybindBtn)
                         listening.Add(button, Config.GetNamed("Reconnect").Keybind);
+                    else if (button == MotesKeybindBtn)
+                        listening.Add(button, Config.Instance.Settings.ZaqlMotes_Keybind);
                     
                     //button.Background = new SolidColorBrush(Color.FromArgb(0x88, 0xD9, 0xCC, 0xD9));
                     if (listening.Count == 1)

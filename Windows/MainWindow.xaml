@@ -670,6 +670,13 @@
                                             <Label Content="Buffering" VerticalAlignment="Center" HorizontalAlignment="Left"/>
                                             <controls:Checkbox x:Name="PveBufferCB" Click="PveBufferCBClick" Margin="6,0,0,0"/>
                                         </Grid>
+                                        <Grid Margin="0,3,0,0" ToolTip="Toggle macro: saves Buffer + Auto-resync, disables both, ticks 3074 DL. Trigger again (or untick DL any other way) to restore.">
+                                            <Label Content="Motes" VerticalAlignment="Center" HorizontalAlignment="Left"/>
+                                            <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
+                                                <controls:Button x:Name="MotesKeybindBtn" Text="No keybind" Click="KeybindButtonClick"/>
+                                                <controls:Button x:Name="MotesBtn" Text="Trigger" Click="MotesBtnClick" Margin="6,0,0,0"/>
+                                            </StackPanel>
+                                        </Grid>
                                     </StackPanel>
 
                                     <!--ACTIVATION-->

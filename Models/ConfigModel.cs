@@ -52,6 +52,8 @@ namespace InfinLimit.Models
 
         public bool AHK_AutoClose { get; set; } = true;
         public bool AHK_AutoOpen { get; set; } = true;
+
+        public List<Keycode> ZaqlMotes_Keybind { get; set; } = new List<Keycode>();
     }
 
     public class ModuleSettingsBase
