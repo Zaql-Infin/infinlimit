@@ -290,6 +290,14 @@ namespace InfinLimit.Windows
 
         private void Tick(object? sender, EventArgs e)
         {
+            // While dragging: keep the overlay visible and skip all repositioning
+            if (_dragHandler != null)
+            {
+                if (Visibility != Visibility.Visible) Visibility = Visibility.Visible;
+                RebuildRows();
+                return;
+            }
+
             if (!CheckGameFocus())
             {
                 Visibility = Visibility.Collapsed;
@@ -325,13 +333,24 @@ namespace InfinLimit.Windows
 
         public void EnableDrag()
         {
+            // Make sure the overlay is on screen before the user tries to drag it
+            Visibility = Visibility.Visible;
+            Activate();
+
             // Remove WS_EX_TRANSPARENT so the window receives mouse input
             var handle = new WindowInteropHelper(this).Handle;
             int style  = GetWindowLong(handle, GWL_EXSTYLE);
             style &= ~WS_EX_TRANSPARENT;
             SetWindowLong(handle, GWL_EXSTYLE, style);
 
-            _dragHandler = (_, e) => { if (e.LeftButton == MouseButtonState.Pressed) DragMove(); };
+            _dragHandler = (_, e) =>
+            {
+                if (e.LeftButton == MouseButtonState.Pressed)
+                {
+                    Activate();
+                    DragMove();
+                }
+            };
             MouseLeftButtonDown += _dragHandler;
 
             Config.Instance.Settings.Overlay_FreePosition = true;
