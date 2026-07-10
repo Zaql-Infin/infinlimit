@@ -71,6 +71,7 @@ namespace InfinLimit
                 GetNamed("API Block").Settings["SelfDisable"] = ApiModule.Disable;
                 GetNamed("API Block").Settings["Buffer"] = ApiModule.Buffer;
                 GetNamed("З0K").Settings["Buffer"] = InstanceModule.Buffer;
+                GetNamed("Reconnect").Settings["HoldSeconds"] = ReconnectModule.HoldSeconds;
 
                 GetNamed("Multishot").Settings["Inbound"] = MultishotModule.Inbound;
                 GetNamed("Multishot").Settings["Outbound"] = MultishotModule.Outbound;
@@ -80,32 +81,8 @@ namespace InfinLimit
                 GetNamed("Multishot").Settings["Togglable"] = InterceptionManager.GetModule("Multishot").Togglable;
                 GetNamed("Multishot").Settings["PlayersKeybind"] = MultishotModule.PlayersKeybind;
 
-                // SwapperModule settings
-                var swapperModule = InterceptionManager.GetModule("Swapper") as SwapperModule;
-                if (swapperModule != null)
-                {
-                    // Core settings
-                    GetNamed("Swapper").Settings["SelectedLoadouts"] = swapperModule.GetSelectedLoadouts();
-                    GetNamed("Swapper").Settings["FinalLoadoutNumber"] = swapperModule.GetFinalLoadout();
-                    GetNamed("Swapper").Settings["ActivateModule"] = swapperModule.GetActivateModule();
-                    GetNamed("Swapper").Settings["LoopDuration"] = swapperModule.GetLoopDuration();
-                    GetNamed("Swapper").Settings["DamageLoadout"] = swapperModule.GetDamageLoadout();
-                    
-                    // Module boolean settings
-                    GetNamed("Swapper").Settings["Use3074Upload"] = swapperModule.GetUse3074Upload();
-                    GetNamed("Swapper").Settings["Use3074Download"] = swapperModule.GetUse3074Download();
-                    GetNamed("Swapper").Settings["Use27kUpload"] = swapperModule.GetUse27kUpload();
-                    GetNamed("Swapper").Settings["F1AfterSwaps"] = swapperModule.GetF1AfterSwaps();
-                    
-                    // Timing settings
-                    GetNamed("Swapper").Settings["SwapTimeOverall"] = swapperModule.GetSwapTime();
-                    GetNamed("Swapper").Settings["DelayBetweenLoadouts"] = swapperModule.GetTimeBetweenLoadouts();
-                    
-                    // Keybind settings
-                    GetNamed("Swapper").Settings["Module3074ULKeybind"] = SwapperModule.Module3074ULKeybind;
-                    GetNamed("Swapper").Settings["Module3074DLKeybind"] = SwapperModule.Module3074DLKeybind;
-                    GetNamed("Swapper").Settings["Module27kULKeybind"] = SwapperModule.Module27kULKeybind;
-                }
+                // SwapperModule: serialize all 5 profiles as a JSON string
+                GetNamed("Swapper").Settings["Profiles"] = JsonSerializer.Serialize(SwapperModule.Profiles);
 
                 File.WriteAllText(ConfigPath, Instance.Serialize(true));
                 Logger.Info($"Config saved");

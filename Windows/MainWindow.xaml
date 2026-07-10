@@ -34,7 +34,7 @@
     <Grid>
         <tb:TaskbarIcon x:Name="tbIcon" IconSource="Assets/appLogo.ico" Visibility="Hidden"/>
 
-<Grid x:Name="Main" MinWidth="290">
+<Grid x:Name="Main" MinWidth="340">
 
             <!-- Hidden volume slider (kept for code compatibility) -->
             <Slider x:Name="VolumeSlider" Visibility="Hidden"
@@ -97,7 +97,7 @@
                                        Foreground="{StaticResource TextPrimary}" VerticalAlignment="Center"/>
                             <Border CornerRadius="4" Background="{StaticResource DividorColor}"
                                     Padding="5,2" Margin="7,0,0,0" VerticalAlignment="Center">
-                                <TextBlock Text="25" FontFamily="{StaticResource Kantumruy}" FontSize="9"
+                                <TextBlock x:Name="VersionBadge" FontFamily="{StaticResource Kantumruy}" FontSize="9"
                                            Foreground="{StaticResource TextSecondary}"/>
                             </Border>
                         </StackPanel>
@@ -122,7 +122,7 @@
                     </Grid>
                 </Border>
 
-                <Line X1="0" X2="290" Stroke="{StaticResource DividorColor}" StrokeThickness="1"/>
+                <Line X1="0" X2="340" Stroke="{StaticResource DividorColor}" StrokeThickness="1"/>
 
                 <!-- ═══ TOP BLOCK: Clock + Speed + Active module chips ═══ -->
                 <Border x:Name="TopBlock" Background="{StaticResource LightBackColor}" Padding="14,8,14,8">
@@ -154,7 +154,7 @@
                     </StackPanel>
                 </Border>
 
-                <Line X1="0" X2="290" Stroke="{StaticResource DividorColor}" StrokeThickness="1"/>
+                <Line X1="0" X2="340" Stroke="{StaticResource DividorColor}" StrokeThickness="1"/>
 
                 <!-- ═══ MODULE TABS (InfinClient style: text + underline indicator) ═══ -->
                 <Border Background="{StaticResource FancyColor}" Padding="0">
@@ -194,7 +194,7 @@
                     </StackPanel>
                 </Border>
 
-                <Line X1="0" X2="290" Stroke="{StaticResource DividorColor}" StrokeThickness="1"/>
+                <Line X1="0" X2="340" Stroke="{StaticResource DividorColor}" StrokeThickness="1"/>
 
                 <!-- ═══ CONTENT AREA ═══ -->
                 <Grid>
@@ -212,7 +212,7 @@
                                              Fill="{StaticResource AccentColor}"/>
                                     <Label x:Name="SelectedModuleLabel" Content="3074"
                                            Padding="0" Margin="0" Height="Auto"
-                                           FontFamily="{StaticResource BigTextFont}" FontSize="18"
+                                           FontFamily="{StaticResource BigTextFont}" FontSize="20"
                                            Foreground="{StaticResource TextPrimary}"
                                            VerticalAlignment="Center"/>
                                 </StackPanel>
@@ -232,7 +232,7 @@
                             <StackPanel x:Name="DescriptionPanel" Margin="14,0,14,4" Visibility="Collapsed">
                                 <TextBlock x:Name="Description" FontSize="11" TextWrapping="Wrap"
                                            Foreground="{StaticResource TextSecondary}" FontFamily="{StaticResource SmallTitleFont}"/>
-                                <Line X1="0" X2="260" Stroke="{StaticResource DividorColor}" StrokeThickness="1" Margin="0,4,0,0"/>
+                                <Line X1="0" X2="310" Stroke="{StaticResource DividorColor}" StrokeThickness="1" Margin="0,4,0,0"/>
                             </StackPanel>
 
                             <Line X1="0" X2="290" Stroke="{StaticResource DividorColor}" StrokeThickness="1" Margin="0,0,0,4"/>
@@ -245,7 +245,7 @@
                                             <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
                                             <Setter Property="Opacity" Value="0.9"/>
                                             <Setter Property="FontFamily" Value="{StaticResource SmallTitleFont}"/>
-                                            <Setter Property="FontSize" Value="13"/>
+                                            <Setter Property="FontSize" Value="14"/>
                                             <Setter Property="Padding" Value="0"/>
                                             <Setter Property="Margin" Value="0,0"/>
                                             <Setter Property="VerticalAlignment" Value="Center"/>
@@ -256,12 +256,12 @@
                                             <Setter Property="HorizontalAlignment" Value="Right"/>
                                         </Style>
                                         <Style TargetType="Grid">
-                                            <Setter Property="MinHeight" Value="28"/>
+                                            <Setter Property="MinHeight" Value="30"/>
                                         </Style>
                                         <Style TargetType="controls:Button">
                                             <Setter Property="Background" Value="{StaticResource InactiveColor}"/>
                                             <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
-                                            <Setter Property="MaxWidth" Value="115"/>
+                                            <Setter Property="MaxWidth" Value="140"/>
                                             <Setter Property="CornerRadius" Value="7"/>
                                             <Setter Property="HorizontalAlignment" Value="Right"/>
                                             <Setter Property="VerticalAlignment" Value="Center"/>
@@ -295,109 +295,231 @@
 
                                     <!--SWAPPER SETTINGS-->
                                     <StackPanel x:Name="SWAPPER_Panel" Visibility="Collapsed">
-                                        <Grid ToolTip="Duration to continuously loop through selected loadouts&#x0a;Examples: 5000 = 5 seconds, 10000 = 10 seconds" Margin="0,3,0,3">
-                                            <Label Content="Duration (ms)" HorizontalAlignment="Left"/>
+                                        <!-- Status + profile nav -->
+                                        <Grid Margin="0,0,0,4">
+                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                                <Ellipse x:Name="SwapperStatusDot" Width="6" Height="6"
+                                                         Fill="{StaticResource TextPrimary}"
+                                                         VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                                <TextBlock x:Name="SwapperStatusLabel" Text="Idle"
+                                                           FontFamily="{StaticResource Kantumruy}" FontSize="12"
+                                                           Foreground="{StaticResource TextPrimary}" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                                <controls:Button x:Name="SwapperProfilePrev" Text="‹"
+                                                                 Click="SwapperProfilePrev_Click"
+                                                                 Width="20" Height="18" CornerRadius="4"
+                                                                 HorizontalAlignment="Left" Margin="0"/>
+                                                <TextBlock x:Name="SwapperProfileCounter" Text="1 / 5"
+                                                           FontFamily="{StaticResource Kantumruy}" FontSize="11"
+                                                           Foreground="{StaticResource TextPrimary}"
+                                                           VerticalAlignment="Center" Margin="5,0"/>
+                                                <controls:Button x:Name="SwapperProfileNext" Text="›"
+                                                                 Click="SwapperProfileNext_Click"
+                                                                 Width="20" Height="18" CornerRadius="4"
+                                                                 HorizontalAlignment="Left" Margin="0"/>
+                                            </StackPanel>
+                                        </Grid>
+                                        <!-- Profile name -->
+                                        <Grid Margin="0,0,0,4">
+                                            <Label Content="Profile name" HorizontalAlignment="Left"/>
+                                            <Border Background="{StaticResource InactiveColor}"
+                                                    BorderBrush="{StaticResource AccentColor}"
+                                                    BorderThickness="1" CornerRadius="5"
+                                                    Width="90" Height="22"
+                                                    HorizontalAlignment="Right" VerticalAlignment="Center">
+                                                <TextBox x:Name="SwapperProfileName" Text="Profile 1"
+                                                         HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                                                         FontFamily="{StaticResource Kantumruy}" FontSize="12"
+                                                         Background="Transparent" Foreground="{StaticResource TitleColor}"
+                                                         BorderThickness="0" Padding="2"
+                                                         TextChanged="SwapperProfileName_TextChanged"/>
+                                            </Border>
+                                        </Grid>
+                                        <!-- Cycle slots -->
+                                        <Label Content="Cycle slots" FontWeight="SemiBold" Margin="0,2,0,2" Padding="0"/>
+                                        <UniformGrid Columns="4" Margin="0,0,0,4">
+                                            <StackPanel Orientation="Horizontal" Margin="0,2">
+                                                <controls:Checkbox x:Name="Swapper_Slot1" HorizontalAlignment="Left" Margin="0" Click="Swapper_SlotClick"/>
+                                                <TextBlock Text="1" Margin="3,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="{StaticResource TextPrimary}"/>
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="0,2">
+                                                <controls:Checkbox x:Name="Swapper_Slot2" HorizontalAlignment="Left" Margin="0" Click="Swapper_SlotClick"/>
+                                                <TextBlock Text="2" Margin="3,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="{StaticResource TextPrimary}"/>
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="0,2">
+                                                <controls:Checkbox x:Name="Swapper_Slot3" HorizontalAlignment="Left" Margin="0" Click="Swapper_SlotClick"/>
+                                                <TextBlock Text="3" Margin="3,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="{StaticResource TextPrimary}"/>
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="0,2">
+                                                <controls:Checkbox x:Name="Swapper_Slot4" HorizontalAlignment="Left" Margin="0" Click="Swapper_SlotClick"/>
+                                                <TextBlock Text="4" Margin="3,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="{StaticResource TextPrimary}"/>
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="0,2">
+                                                <controls:Checkbox x:Name="Swapper_Slot5" HorizontalAlignment="Left" Margin="0" Click="Swapper_SlotClick"/>
+                                                <TextBlock Text="5" Margin="3,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="{StaticResource TextPrimary}"/>
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="0,2">
+                                                <controls:Checkbox x:Name="Swapper_Slot6" HorizontalAlignment="Left" Margin="0" Click="Swapper_SlotClick"/>
+                                                <TextBlock Text="6" Margin="3,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="{StaticResource TextPrimary}"/>
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="0,2">
+                                                <controls:Checkbox x:Name="Swapper_Slot7" HorizontalAlignment="Left" Margin="0" Click="Swapper_SlotClick"/>
+                                                <TextBlock Text="7" Margin="3,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="{StaticResource TextPrimary}"/>
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="0,2">
+                                                <controls:Checkbox x:Name="Swapper_Slot8" HorizontalAlignment="Left" Margin="0" Click="Swapper_SlotClick"/>
+                                                <TextBlock Text="8" Margin="3,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="{StaticResource TextPrimary}"/>
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="0,2">
+                                                <controls:Checkbox x:Name="Swapper_Slot9" HorizontalAlignment="Left" Margin="0" Click="Swapper_SlotClick"/>
+                                                <TextBlock Text="9" Margin="3,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="{StaticResource TextPrimary}"/>
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="0,2">
+                                                <controls:Checkbox x:Name="Swapper_Slot10" HorizontalAlignment="Left" Margin="0" Click="Swapper_SlotClick"/>
+                                                <TextBlock Text="10" Margin="3,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="{StaticResource TextPrimary}"/>
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="0,2">
+                                                <controls:Checkbox x:Name="Swapper_Slot11" HorizontalAlignment="Left" Margin="0" Click="Swapper_SlotClick"/>
+                                                <TextBlock Text="11" Margin="3,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="{StaticResource TextPrimary}"/>
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="0,2">
+                                                <controls:Checkbox x:Name="Swapper_Slot12" HorizontalAlignment="Left" Margin="0" Click="Swapper_SlotClick"/>
+                                                <TextBlock Text="12" Margin="3,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="{StaticResource TextPrimary}"/>
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="0,2">
+                                                <controls:Checkbox x:Name="Swapper_Slot13" HorizontalAlignment="Left" Margin="0" Click="Swapper_SlotClick"/>
+                                                <TextBlock Text="13" Margin="3,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="{StaticResource TextPrimary}"/>
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="0,2">
+                                                <controls:Checkbox x:Name="Swapper_Slot14" HorizontalAlignment="Left" Margin="0" Click="Swapper_SlotClick"/>
+                                                <TextBlock Text="14" Margin="3,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="{StaticResource TextPrimary}"/>
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="0,2">
+                                                <controls:Checkbox x:Name="Swapper_Slot15" HorizontalAlignment="Left" Margin="0" Click="Swapper_SlotClick"/>
+                                                <TextBlock Text="15" Margin="3,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="{StaticResource TextPrimary}"/>
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="0,2">
+                                                <controls:Checkbox x:Name="Swapper_Slot16" HorizontalAlignment="Left" Margin="0" Click="Swapper_SlotClick"/>
+                                                <TextBlock Text="16" Margin="3,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="{StaticResource TextPrimary}"/>
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="0,2">
+                                                <controls:Checkbox x:Name="Swapper_Slot17" HorizontalAlignment="Left" Margin="0" Click="Swapper_SlotClick"/>
+                                                <TextBlock Text="17" Margin="3,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="{StaticResource TextPrimary}"/>
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="0,2">
+                                                <controls:Checkbox x:Name="Swapper_Slot18" HorizontalAlignment="Left" Margin="0" Click="Swapper_SlotClick"/>
+                                                <TextBlock Text="18" Margin="3,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="{StaticResource TextPrimary}"/>
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="0,2">
+                                                <controls:Checkbox x:Name="Swapper_Slot19" HorizontalAlignment="Left" Margin="0" Click="Swapper_SlotClick"/>
+                                                <TextBlock Text="19" Margin="3,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="{StaticResource TextPrimary}"/>
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="0,2">
+                                                <controls:Checkbox x:Name="Swapper_Slot20" HorizontalAlignment="Left" Margin="0" Click="Swapper_SlotClick"/>
+                                                <TextBlock Text="20" Margin="3,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="{StaticResource TextPrimary}"/>
+                                            </StackPanel>
+                                        </UniformGrid>
+                                        <!-- Numeric settings -->
+                                        <Grid Margin="0,0,0,3">
+                                            <Label Content="Final slot" HorizontalAlignment="Left"/>
+                                            <Border Background="{StaticResource InactiveColor}"
+                                                    BorderBrush="{StaticResource AccentColor}"
+                                                    BorderThickness="1" CornerRadius="5"
+                                                    Width="40" Height="22"
+                                                    HorizontalAlignment="Right" VerticalAlignment="Center">
+                                                <TextBox x:Name="SwapperFinalSlot" Text="1"
+                                                         HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                                                         FontFamily="{StaticResource Kantumruy}" FontSize="12"
+                                                         Background="Transparent" Foreground="{StaticResource TitleColor}"
+                                                         BorderThickness="0" Padding="2"
+                                                         TextChanged="SwapperFinalSlot_TextChanged"/>
+                                            </Border>
+                                        </Grid>
+                                        <Grid Margin="0,0,0,3">
+                                            <Label Content="Swap duration (ms)" HorizontalAlignment="Left"/>
                                             <Border Background="{StaticResource InactiveColor}"
                                                     BorderBrush="{StaticResource AccentColor}"
                                                     BorderThickness="1" CornerRadius="5"
                                                     Width="60" Height="22"
                                                     HorizontalAlignment="Right" VerticalAlignment="Center">
-                                                <TextBox x:Name="SwapperDuration" Text="5000"
+                                                <TextBox x:Name="SwapperSwapDuration" Text="2000"
                                                          HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
                                                          FontFamily="{StaticResource Kantumruy}" FontSize="12"
                                                          Background="Transparent" Foreground="{StaticResource TitleColor}"
                                                          BorderThickness="0" Padding="2"
-                                                         TextChanged="SwapperDuration_TextChanged"/>
+                                                         TextChanged="SwapperSwapDuration_TextChanged"/>
                                             </Border>
                                         </Grid>
-                                        <Grid ToolTip="Loadout number (1-12) to end the sequence on&#x0a;Will switch to this loadout when loop duration expires" Margin="0,0,0,3">
-                                            <Label Content="Final loadout" HorizontalAlignment="Left"/>
+                                        <Grid Margin="0,0,0,3">
+                                            <Label Content="Delay between (ms)" HorizontalAlignment="Left"/>
                                             <Border Background="{StaticResource InactiveColor}"
                                                     BorderBrush="{StaticResource AccentColor}"
                                                     BorderThickness="1" CornerRadius="5"
-                                                    Width="35" Height="22"
+                                                    Width="60" Height="22"
                                                     HorizontalAlignment="Right" VerticalAlignment="Center">
-                                                <TextBox x:Name="SwapperFinalLoadout" Text="1"
+                                                <TextBox x:Name="SwapperDelayBetween" Text="25"
                                                          HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
                                                          FontFamily="{StaticResource Kantumruy}" FontSize="12"
                                                          Background="Transparent" Foreground="{StaticResource TitleColor}"
                                                          BorderThickness="0" Padding="2"
-                                                         TextChanged="SwapperFinalLoadout_TextChanged"/>
+                                                         TextChanged="SwapperDelayBetween_TextChanged"/>
                                             </Border>
                                         </Grid>
-                                        <Grid ToolTip="Activate PVE Upload blocking during loadout swapping" Margin="0,0,0,3">
-                                            <Label Content="3074 UL" HorizontalAlignment="Left"/>
-                                            <controls:Button x:Name="SwapperModule3074UL" Text="No keybind" Click="KeybindButtonClick" HorizontalAlignment="Right"/>
+                                        <Grid Margin="0,0,0,3">
+                                            <Label Content="Untick delay (ms)" HorizontalAlignment="Left"/>
+                                            <Border Background="{StaticResource InactiveColor}"
+                                                    BorderBrush="{StaticResource AccentColor}"
+                                                    BorderThickness="1" CornerRadius="5"
+                                                    Width="60" Height="22"
+                                                    HorizontalAlignment="Right" VerticalAlignment="Center">
+                                                <TextBox x:Name="SwapperUntickDelayTB" Text="500"
+                                                         HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                                                         FontFamily="{StaticResource Kantumruy}" FontSize="12"
+                                                         Background="Transparent" Foreground="{StaticResource TitleColor}"
+                                                         BorderThickness="0" Padding="2"
+                                                         TextChanged="SwapperUntickDelayTB_TextChanged"/>
+                                            </Border>
                                         </Grid>
-                                        <Grid ToolTip="Activate PVE Download blocking during loadout swapping" Margin="0,0,0,3">
-                                            <Label Content="3074 DL" HorizontalAlignment="Left"/>
-                                            <controls:Button x:Name="SwapperModule3074DL" Text="No keybind" Click="KeybindButtonClick" HorizontalAlignment="Right"/>
+                                        <!-- Module toggles -->
+                                        <Grid Margin="0,0,0,3" ToolTip="Block 3074 UL (PVE Upload) during swap">
+                                            <Label Content="Block 3074 UL (PVE)" HorizontalAlignment="Left"/>
+                                            <controls:Checkbox x:Name="SwapperPort3074UL" Click="SwapperPort3074UL_Click"/>
                                         </Grid>
-                                        <Grid ToolTip="Activate PVP Upload blocking during loadout swapping" Margin="0,0,0,3">
-                                            <Label Content="27k UL" HorizontalAlignment="Left"/>
-                                            <controls:Button x:Name="SwapperModule27kUL" Text="No keybind" Click="KeybindButtonClick" HorizontalAlignment="Right"/>
+                                        <Grid Margin="0,0,0,3" ToolTip="Block 27k UL (PVP Upload) during swap">
+                                            <Label Content="Block 27k UL (PVP)" HorizontalAlignment="Left"/>
+                                            <controls:Checkbox x:Name="SwapperPort27kUL" Click="SwapperPort27kUL_Click"/>
                                         </Grid>
-                                        <Grid ToolTip="Select which loadouts to cycle through during the loop" Margin="0,6,0,3">
-                                            <Label Content="Loadout selection" HorizontalAlignment="Left" FontWeight="SemiBold"/>
+                                        <Grid Margin="0,0,0,3" ToolTip="Also block 3074 DL (PVE Download) during swap">
+                                            <Label Content="Block 3074 DL too" HorizontalAlignment="Left"/>
+                                            <controls:Checkbox x:Name="SwapperPort3074DL" Click="SwapperPort3074DL_Click"/>
                                         </Grid>
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="*"/>
-                                            </Grid.ColumnDefinitions>
-                                            <StackPanel Grid.Column="0" Margin="0,0,8,0">
-                                                <Grid ToolTip="Include Loadout 1 in the loop cycle" Margin="0,2">
-                                                    <Label Content="Loadout 1" HorizontalAlignment="Left" FontSize="12"/>
-                                                    <controls:Checkbox x:Name="Swapper_Loadout1" Click="Swapper_LoadoutButton_Click" HorizontalAlignment="Right"/>
-                                                </Grid>
-                                                <Grid ToolTip="Include Loadout 3 in the loop cycle" Margin="0,2">
-                                                    <Label Content="Loadout 3" HorizontalAlignment="Left" FontSize="12"/>
-                                                    <controls:Checkbox x:Name="Swapper_Loadout3" Click="Swapper_LoadoutButton_Click" HorizontalAlignment="Right"/>
-                                                </Grid>
-                                                <Grid ToolTip="Include Loadout 5 in the loop cycle" Margin="0,2">
-                                                    <Label Content="Loadout 5" HorizontalAlignment="Left" FontSize="12"/>
-                                                    <controls:Checkbox x:Name="Swapper_Loadout5" Click="Swapper_LoadoutButton_Click" HorizontalAlignment="Right"/>
-                                                </Grid>
-                                                <Grid ToolTip="Include Loadout 7 in the loop cycle" Margin="0,2">
-                                                    <Label Content="Loadout 7" HorizontalAlignment="Left" FontSize="12"/>
-                                                    <controls:Checkbox x:Name="Swapper_Loadout7" Click="Swapper_LoadoutButton_Click" HorizontalAlignment="Right"/>
-                                                </Grid>
-                                                <Grid ToolTip="Include Loadout 9 in the loop cycle" Margin="0,2">
-                                                    <Label Content="Loadout 9" HorizontalAlignment="Left" FontSize="12"/>
-                                                    <controls:Checkbox x:Name="Swapper_Loadout9" Click="Swapper_LoadoutButton_Click" HorizontalAlignment="Right"/>
-                                                </Grid>
-                                                <Grid ToolTip="Include Loadout 11 in the loop cycle" Margin="0,2">
-                                                    <Label Content="Loadout 11" HorizontalAlignment="Left" FontSize="12"/>
-                                                    <controls:Checkbox x:Name="Swapper_Loadout11" Click="Swapper_LoadoutButton_Click" HorizontalAlignment="Right"/>
-                                                </Grid>
-                                            </StackPanel>
-                                            <StackPanel Grid.Column="1" Margin="8,0,0,0">
-                                                <Grid ToolTip="Include Loadout 2 in the loop cycle" Margin="0,2">
-                                                    <Label Content="Loadout 2" HorizontalAlignment="Left" FontSize="12"/>
-                                                    <controls:Checkbox x:Name="Swapper_Loadout2" Click="Swapper_LoadoutButton_Click" HorizontalAlignment="Right"/>
-                                                </Grid>
-                                                <Grid ToolTip="Include Loadout 4 in the loop cycle" Margin="0,2">
-                                                    <Label Content="Loadout 4" HorizontalAlignment="Left" FontSize="12"/>
-                                                    <controls:Checkbox x:Name="Swapper_Loadout4" Click="Swapper_LoadoutButton_Click" HorizontalAlignment="Right"/>
-                                                </Grid>
-                                                <Grid ToolTip="Include Loadout 6 in the loop cycle" Margin="0,2">
-                                                    <Label Content="Loadout 6" HorizontalAlignment="Left" FontSize="12"/>
-                                                    <controls:Checkbox x:Name="Swapper_Loadout6" Click="Swapper_LoadoutButton_Click" HorizontalAlignment="Right"/>
-                                                </Grid>
-                                                <Grid ToolTip="Include Loadout 8 in the loop cycle" Margin="0,2">
-                                                    <Label Content="Loadout 8" HorizontalAlignment="Left" FontSize="12"/>
-                                                    <controls:Checkbox x:Name="Swapper_Loadout8" Click="Swapper_LoadoutButton_Click" HorizontalAlignment="Right"/>
-                                                </Grid>
-                                                <Grid ToolTip="Include Loadout 10 in the loop cycle" Margin="0,2">
-                                                    <Label Content="Loadout 10" HorizontalAlignment="Left" FontSize="12"/>
-                                                    <controls:Checkbox x:Name="Swapper_Loadout10" Click="Swapper_LoadoutButton_Click" HorizontalAlignment="Right"/>
-                                                </Grid>
-                                                <Grid ToolTip="Include Loadout 12 in the loop cycle" Margin="0,2">
-                                                    <Label Content="Loadout 12" HorizontalAlignment="Left" FontSize="12"/>
-                                                    <controls:Checkbox x:Name="Swapper_Loadout12" Click="Swapper_LoadoutButton_Click" HorizontalAlignment="Right"/>
-                                                </Grid>
-                                            </StackPanel>
+                                        <Grid Margin="0,0,0,3" ToolTip="Auto-disable PVE buffering during swap; restores after UntickDelay">
+                                            <Label Content="Disable buffering" HorizontalAlignment="Left"/>
+                                            <controls:Checkbox x:Name="SwapperDisableBuffering" Click="SwapperDisableBuffering_Click"/>
                                         </Grid>
+                                        <Grid Margin="0,0,0,3" ToolTip="Press F1 after swap to close the loadout screen">
+                                            <Label Content="Close inventory" HorizontalAlignment="Left"/>
+                                            <controls:Checkbox x:Name="SwapperCloseInventoryCB" Click="SwapperCloseInventoryCB_Click"/>
+                                        </Grid>
+                                        <Grid Margin="0,0,0,3" ToolTip="Activate Full Game bandwidth cap during swap">
+                                            <Label Content="Tick Full Game" HorizontalAlignment="Left"/>
+                                            <controls:Checkbox x:Name="SwapperTickFullGame" Click="SwapperTickFullGame_Click"/>
+                                        </Grid>
+                                        <Grid Margin="0,0,0,3" ToolTip="Press F1 and navigate to loadout screen before swapping (pixel detection)">
+                                            <Label Content="Open inventory" HorizontalAlignment="Left"/>
+                                            <controls:Checkbox x:Name="SwapperOpenInventoryCB" Click="SwapperOpenInventoryCB_Click"/>
+                                        </Grid>
+                                        <!-- Keybind -->
+                                        <Grid Margin="0,4,0,3" ToolTip="Keybind that triggers this profile's swap">
+                                            <Label Content="Keybind" HorizontalAlignment="Left"/>
+                                            <controls:Button x:Name="SwapperKeybindBtn" Text="No keybind"
+                                                             Click="KeybindButtonClick" HorizontalAlignment="Right"/>
+                                        </Grid>
+                                        <!-- Save -->
+                                        <controls:Button Text="Save All Profiles" Click="SwapperSaveAll_Click"
+                                                         CornerRadius="5" Margin="0,6,0,2"
+                                                         HorizontalAlignment="Stretch"/>
                                     </StackPanel>
 
                                     <!--MULTISHOT SETTINGS-->
@@ -468,6 +590,27 @@
                                                          TextChanged="InstRateLimitTB_TextChanged"/>
                                             </Border>
                                         </Grid>
+                                        <Line X1="0" X2="310" Stroke="{StaticResource DividorColor}" StrokeThickness="1" Margin="0,4,0,4"/>
+                                        <Grid Margin="0,0,0,3" ToolTip="Seconds to delay inbound traffic after reconnect (0 = no hold)">
+                                            <Label Content="Hold (s)" HorizontalAlignment="Left"/>
+                                            <Border Background="{StaticResource InactiveColor}"
+                                                    BorderBrush="{StaticResource AccentColor}"
+                                                    BorderThickness="1" CornerRadius="5"
+                                                    Width="50" Height="22"
+                                                    HorizontalAlignment="Right" VerticalAlignment="Center">
+                                                <TextBox x:Name="ReconnectHoldTB" Text="0"
+                                                         HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                                                         FontFamily="{StaticResource Kantumruy}" FontSize="12"
+                                                         Background="Transparent" Foreground="{StaticResource TitleColor}"
+                                                         BorderThickness="0" Padding="2"
+                                                         TextChanged="ReconnectHoldTB_TextChanged"/>
+                                            </Border>
+                                        </Grid>
+                                        <Grid Margin="0,0,0,3" ToolTip="Keybind to trigger instant reconnect on 30k port">
+                                            <Label Content="Reconnect" HorizontalAlignment="Left"/>
+                                            <controls:Button x:Name="ReconnectKeybindBtn" Text="No keybind"
+                                                             Click="KeybindButtonClick" HorizontalAlignment="Right"/>
+                                        </Grid>
                                     </StackPanel>
 
                                     <!--PVP SETTINGS-->
@@ -533,7 +676,7 @@
                                     <Grid x:Name="ActivationGrid">
                                         <Label x:Name="kbd" Content="Keybind" VerticalAlignment="Center" HorizontalAlignment="Left"/>
                                         <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
-                                            <controls:Button x:Name="KeybindButton" Text="No keybind" MaxWidth="100" Click="KeybindButtonClick"/>
+                                            <controls:Button x:Name="KeybindButton" Text="No keybind" MaxWidth="120" Click="KeybindButtonClick"/>
                                             <controls:Checkbox x:Name="PvpInCB" Visibility="Collapsed" Click="PvpInCBClick" Margin="6,0,0,0"/>
                                         </StackPanel>
                                     </Grid>
@@ -555,7 +698,7 @@
 
                 </Grid>
 
-                <Line X1="0" X2="290" Stroke="{StaticResource DividorColor}" StrokeThickness="1"/>
+                <Line X1="0" X2="340" Stroke="{StaticResource DividorColor}" StrokeThickness="1"/>
 
                 <!-- ═══ BOTTOM BAR: secondary controls ═══ -->
                 <Border Background="{StaticResource LightBackColor}" CornerRadius="0,0,12,12" Padding="6,4">

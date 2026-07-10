@@ -51,6 +51,9 @@ namespace InfinLimit.Interception.Modules
         // Per-device queues: excess packets are delayed here rather than dropped (NetBalancer-style)
         private readonly ConcurrentDictionary<string, ConcurrentQueue<(WinDivertPacket Pkt, WinDivertAddress Addr)>> _downloadQueues = new();
         private readonly ConcurrentDictionary<string, ConcurrentQueue<(WinDivertPacket Pkt, WinDivertAddress Addr)>> _uploadQueues = new();
+        // 3074-3173 DL: 1 bit/s / 100000ms delay queue (effective block on inbound game traffic)
+        private readonly ConcurrentQueue<(WinDivertPacket Pkt, WinDivertAddress Addr, DateTime EnqueuedAt)> _port3074Queue = new();
+        private readonly TokenBucket _port3074Bucket = new(1); // 1 bit/s (Consume uses pktLen*8)
         // 7500-7509 forward-layer filter: TCP DL only, 1 bit/s / 100000ms delay (effective block)
         private readonly ConcurrentQueue<(WinDivertPacket Pkt, WinDivertAddress Addr, DateTime EnqueuedAt)> _port2DelayQueue = new();
         private readonly TokenBucket _port2Bucket = new(1); // 1 bit/s (Consume uses pktLen*8)
@@ -282,6 +285,7 @@ namespace InfinLimit.Interception.Modules
             _downloadQueues.Clear();
             _uploadQueues.Clear();
             while (_port2DelayQueue.TryDequeue(out _)) { }
+            while (_port3074Queue.TryDequeue(out _)) { }
 
             var cts = _cts;
             _cts = null;
@@ -311,6 +315,7 @@ namespace InfinLimit.Interception.Modules
             _downloadQueues.Clear();
             _uploadQueues.Clear();
             while (_port2DelayQueue.TryDequeue(out _)) { }
+            while (_port3074Queue.TryDequeue(out _)) { }
 
             var oldCts = _cts;
             _cts = null;
@@ -389,6 +394,26 @@ namespace InfinLimit.Interception.Modules
             }
         }
 
+        private async Task DrainPort3074Async(WinDivert divert, CancellationToken ct)
+        {
+            while (!ct.IsCancellationRequested)
+            {
+                var now = DateTime.UtcNow;
+                bool sent = false;
+                while (_port3074Queue.TryPeek(out var top) &&
+                       (now - top.EnqueuedAt).TotalMilliseconds >= 100000 &&
+                       _port3074Bucket.Consume(top.Pkt.Length * 8)) // consume bits (1 bit/s rate)
+                {
+                    if (_port3074Queue.TryDequeue(out var p))
+                    {
+                        try { await divert.SendAsync(p.Pkt, p.Addr); } catch { }
+                        sent = true;
+                    }
+                }
+                if (!sent) await Task.Delay(1, ct).ConfigureAwait(false);
+            }
+        }
+
         private void StartDivert()
         {
             var filter = BuildFilter();
@@ -412,6 +437,7 @@ namespace InfinLimit.Interception.Modules
                 // delay instead of drop — game gets every packet, just throttled in time).
                 _ = Task.Run(() => DrainQueuesAsync(divert, ct), ct);
                 _ = Task.Run(() => SpeedTrackerAsync(ct), ct);
+                _ = Task.Run(() => DrainPort3074Async(divert, ct), ct);
 
                 while (!ct.IsCancellationRequested)
                 {
@@ -527,11 +553,12 @@ namespace InfinLimit.Interception.Modules
 
                     if (!dropped && !queued)
                     {
-                        // Port filter DL only: drop inbound packets (internet → console).
+                        // Port filter DL only: delay inbound packets at 1 bit/s (internet → console).
                         // Upload packets (console → internet) are forwarded unchanged.
                         if (in3074 && deviceMatched && !hasLimits && isDlPacket)
                         {
-                            // drop — do not send
+                            if (_port3074Queue.Count < 512)
+                                _port3074Queue.Enqueue((packet, addr, DateTime.UtcNow));
                         }
                         else
                         {

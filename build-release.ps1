@@ -36,5 +36,13 @@ vpk pack -u $AppId -v $Version -p $PublishDir -e $ExeName `
     --packTitle "InfinLimit" --noPortable -o $ReleasesDir
 if ($LASTEXITCODE -ne 0) { throw "vpk pack failed" }
 
+# Copy raw exe (used by auto-updater — no installer needed for updates)
+Copy-Item "$PublishDir\$ExeName" "$ReleasesDir\$ExeName" -Force
+
 Remove-Item $PublishDir -Recurse -Force
-Write-Host "Done: $ReleasesDir\${AppId}-win-Setup.exe" -ForegroundColor Green
+
+# Rename setup to canonical name
+Rename-Item "$ReleasesDir\${AppId}-win-Setup.exe" "InfinLimitSetup.exe" -Force
+Write-Host "Done: $ReleasesDir\" -ForegroundColor Green
+Write-Host "  InfinLimitSetup.exe  (first-time install)" -ForegroundColor DarkCyan
+Write-Host "  InfinLimit.exe       (auto-update asset)"  -ForegroundColor DarkCyan

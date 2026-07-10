@@ -39,9 +39,9 @@ namespace InfinLimit.Controls
             trackBrush.BeginAnimation(SolidColorBrush.ColorProperty,
                 new ColorAnimation(targetColor, AnimDur) { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } });
 
-            // Fade checkmark in/out
-            Thumb.BeginAnimation(OpacityProperty,
-                new DoubleAnimation(enabled ? 1.0 : 0.0, AnimDur)
+            // Slide thumb circle left (off) or right (on)
+            ThumbTranslate.BeginAnimation(TranslateTransform.XProperty,
+                new DoubleAnimation(enabled ? 16.0 : 0.0, AnimDur)
                 { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } });
         }
 

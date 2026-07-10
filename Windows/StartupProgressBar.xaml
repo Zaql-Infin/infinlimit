@@ -9,56 +9,65 @@
         WindowStartupLocation="CenterScreen"
         Style="{StaticResource TransparentWindow}">
     
-    <Grid Width="330" MinHeight="50">
-
-
+    <Grid Width="360" MinHeight="50">
 
         <StackPanel>
-            <!--Task and close panel-->
-            <Grid Height="32"
-                        Margin="10,10,10,4" 
-                        VerticalAlignment="Top">
+            <!--Title row: icon + status label + close-->
+            <Grid Height="36" Margin="12,10,12,6" VerticalAlignment="Top">
 
-                <Path Data="{StaticResource AppIcon}" 
+                <Path Data="{StaticResource AppIcon}"
                       Fill="{StaticResource AccentColor}"
                       Stretch="Uniform"
-                      Height="22"
-                      Margin="8,0,0,0"
-                      HorizontalAlignment="Left"/>
+                      Height="20"
+                      Margin="4,0,0,0"
+                      HorizontalAlignment="Left"
+                      VerticalAlignment="Center"/>
 
                 <!--Task Description-->
-                <Label Name="TaskDescription"
-                       Content="Initializing..." 
-                       Margin="34,0,0,0"
-                       HorizontalAlignment="Left" VerticalAlignment="Top"
-                       Width="250" Height="30" Foreground="black" 
-                       FontFamily="{StaticResource TitleFont}" FontSize="18"/>
+                <Label x:FieldModifier="public" Name="TaskDescription"
+                       Content="Initializing..."
+                       Margin="30,0,0,0"
+                       HorizontalAlignment="Left" VerticalAlignment="Center"
+                       Foreground="{StaticResource TextPrimary}"
+                       FontFamily="{StaticResource TitleFont}" FontSize="15"
+                       Padding="0"/>
 
                 <controls:WindowControlButton HorizontalAlignment="Right"
-                    Height="22" PathData="{StaticResource CloseIcon}" 
+                    Height="20" PathData="{StaticResource CloseIcon}"
                     Click="ExitButtonClick" Scale="0.95" MaxScale="1.0"
-                    Margin="0,0,8,0"
+                    Margin="0,0,4,0"
                     FillColor="{StaticResource InactiveColor}" GlowColor="#d93732"/>
             </Grid>
 
-
-
-            <!--Progress bar-->
-            <Border x:Name="ProgressPanel" CornerRadius="6" BorderThickness="1" Visibility="Collapsed"
-                    BorderBrush="{StaticResource AccentColor}" 
-                    VerticalAlignment="Bottom" Margin="0,0,0,10" Height="40" Width="285">
-                <Grid Margin="4">
-                    <Border x:Name="Progress" CornerRadius="4"
-                            HorizontalAlignment="Left" VerticalAlignment="Top" 
-                            Height="30" Width="0" MaxWidth="275" 
-                            Background="{StaticResource AccentColor}" BorderBrush="Transparent">
+            <!--Progress bar: slim glowing track-->
+            <Border x:Name="ProgressPanel" x:FieldModifier="public" Visibility="Collapsed"
+                    Margin="14,0,14,14">
+                <StackPanel>
+                    <!--Track background-->
+                    <Border Height="5" CornerRadius="3" Background="#12122A">
+                        <!--Fill-->
+                        <Border x:Name="Progress" x:FieldModifier="public"
+                                CornerRadius="3" Height="5"
+                                HorizontalAlignment="Left" Width="0" MaxWidth="330">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                    <GradientStop Color="#4a4aee" Offset="0"/>
+                                    <GradientStop Color="#6a6aff" Offset="0.5"/>
+                                    <GradientStop Color="#9090ff" Offset="1"/>
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <Border.Effect>
+                                <DropShadowEffect Color="#6a6aff" BlurRadius="10"
+                                                  ShadowDepth="0" Opacity="0.85"/>
+                            </Border.Effect>
+                        </Border>
                     </Border>
-                </Grid>
+                </StackPanel>
             </Border>
 
 
 
-            <Border x:Name="LoginBorder" CornerRadius="8" Margin="10,0,10,10" Visibility="Visible"
+            <Border x:Name="LoginBorder" x:FieldModifier="public" CornerRadius="8" Margin="10,0,10,10" Visibility="Visible"
                     Background="{StaticResource LightBackColor}">
 
                 <Border.LayoutTransform>

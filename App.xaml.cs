@@ -35,8 +35,111 @@ namespace InfinLimit
                 base.OnStartup(e);
             }
 
-            private void Application_Startup(object sender, StartupEventArgs e)
+            protected override void OnExit(ExitEventArgs e)
             {
+                PresenceReporter.StopAsync().GetAwaiter().GetResult();
+                base.OnExit(e);
+            }
+
+            private async void Application_Startup(object sender, StartupEventArgs e)
+            {
+                // 1. Update check FIRST — so users on any version can always reach the latest
+                //    without being blocked by auth. If an update is available it downloads
+                //    silently, relaunches, and this method never continues.
+                try
+                {
+                    if (await Updater.IsUpdateAvailableAsync())
+                    {
+                        var splash = new StartupProgressBar();
+                        splash.TaskDescription.Content = "Updating InfinLimiter...";
+                        splash.LoginBorder.Visibility = System.Windows.Visibility.Collapsed;
+                        splash.Show();
+
+                        await Updater.DownloadAndApplyAsync(new Progress<int>(pct =>
+                        {
+                            splash.Dispatcher.Invoke(() =>
+                            {
+                                splash.TaskDescription.Content = $"Updating... {pct}%";
+                                splash.ProgressPanel.Visibility = System.Windows.Visibility.Visible;
+                                splash.Progress.Width = pct * 330 / 100;
+                            });
+                        }));
+                        // DownloadAndApplyAsync shuts the app down on success — if we reach
+                        // here the download failed; just continue to auth normally.
+                        splash.Close();
+                    }
+                }
+                catch { }
+
+                // 2. HWID auth — poll until approved, banned, or user closes the dialog
+                var auth = await HwidAuth.CheckAsync();
+
+                if (auth == HwidAuth.AuthResult.Blacklisted)
+                {
+                    new AuthDialog(
+                        "Access Denied",
+                        "Your PC has been blacklisted from InfinLimiter.\nContact support if you believe this is an error.",
+                        HwidAuth.Hwid).ShowDialog();
+                    Shutdown(1);
+                    return;
+                }
+
+                if (auth == HwidAuth.AuthResult.NotWhitelisted)
+                {
+                    // Show a waiting dialog and re-check every 5 seconds so the moment
+                    // an admin approves the user the app opens automatically.
+                    var waitDlg = new AuthDialog(
+                        "Waiting for Approval",
+                        "Your HWID has been sent for review.\nThe app will open automatically once you're approved.",
+                        HwidAuth.Hwid);
+
+                    bool approved = false;
+                    var cts = new System.Threading.CancellationTokenSource();
+
+                    waitDlg.Closed += (_, _) => cts.Cancel();
+
+                    _ = Task.Run(async () =>
+                    {
+                        while (!cts.Token.IsCancellationRequested)
+                        {
+                            await Task.Delay(5000, cts.Token).ContinueWith(_ => { });
+                            if (cts.Token.IsCancellationRequested) break;
+
+                            var result = await HwidAuth.CheckAsync();
+                            if (result == HwidAuth.AuthResult.Allowed)
+                            {
+                                approved = true;
+                                Dispatcher.Invoke(() => waitDlg.Close());
+                                break;
+                            }
+                            if (result == HwidAuth.AuthResult.Blacklisted)
+                            {
+                                Dispatcher.Invoke(() =>
+                                {
+                                    waitDlg.Close();
+                                    new AuthDialog(
+                                        "Access Denied",
+                                        "Your PC has been blacklisted from InfinLimiter.\nContact support if you believe this is an error.",
+                                        HwidAuth.Hwid).ShowDialog();
+                                    Shutdown(1);
+                                });
+                                return;
+                            }
+                        }
+                    }, cts.Token);
+
+                    waitDlg.ShowDialog();
+                    cts.Cancel();
+
+                    if (!approved)
+                    {
+                        Shutdown(1);
+                        return;
+                    }
+                }
+                // NetworkError → fail open (don't block if server is temporarily down)
+
+                // 3. Normal startup
                 EnsureNpcap();
                 ThemeManager.Initialize();
                 var checker = new IdentityChecker();
@@ -44,25 +147,8 @@ namespace InfinLimit
                 var main = new MainWindow(checker);
                 main.Show();
 
-                // Background update check — runs after window opens so it doesn't delay startup
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        if (!await Updater.IsUpdateAvailableAsync()) return;
-
-                        var result = Dispatcher.Invoke(() =>
-                            System.Windows.MessageBox.Show(
-                                "A new version of InfinLimit is available.\n\nInstall now and restart?",
-                                "Update Available",
-                                System.Windows.MessageBoxButton.YesNo,
-                                System.Windows.MessageBoxImage.Information));
-
-                        if (result == System.Windows.MessageBoxResult.Yes)
-                            await Updater.DownloadAndApplyAsync();
-                    }
-                    catch { }
-                });
+                HwidAuth.StartBackgroundCheck();
+                _ = PresenceReporter.StartAsync(HwidAuth.Hwid);
             }
 
             private static void EnsureNpcap()
