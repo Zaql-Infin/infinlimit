@@ -218,15 +218,6 @@ namespace InfinLimit.Interception.Modules
 
         public static void SaveKeybinds()
         {
-            var cfg = Config.GetNamed("ConsoleModule");
-            cfg.Settings["EnableKeybind"] = EnableKeybind;
-            cfg.Settings["DLKeybind"] = DLKeybind;
-            cfg.Settings["ULKeybind"] = ULKeybind;
-            cfg.Settings["DLSlowKeybind"] = DLSlowKeybind;
-            cfg.Settings["ULSlowKeybind"] = ULSlowKeybind;
-            cfg.Settings["AutoResyncKeybind"] = AutoResyncKeybind;
-            cfg.Settings["BufferingKeybind"] = BufferingKeybind;
-            cfg.Settings["GamePauseKeybind"] = GamePauseKeybind;
             Config.Save();
         }
 

@@ -84,6 +84,18 @@ namespace InfinLimit
                 // SwapperModule: serialize all 5 profiles as a JSON string
                 GetNamed("Swapper").Settings["Profiles"] = JsonSerializer.Serialize(SwapperModule.Profiles);
 
+                // ConsoleModule keybinds
+                GetNamed("ConsoleModule").Settings["EnableKeybind"]      = ConsoleModule.EnableKeybind;
+                GetNamed("ConsoleModule").Settings["DLKeybind"]          = ConsoleModule.DLKeybind;
+                GetNamed("ConsoleModule").Settings["ULKeybind"]          = ConsoleModule.ULKeybind;
+                GetNamed("ConsoleModule").Settings["DLSlowKeybind"]      = ConsoleModule.DLSlowKeybind;
+                GetNamed("ConsoleModule").Settings["ULSlowKeybind"]      = ConsoleModule.ULSlowKeybind;
+                GetNamed("ConsoleModule").Settings["AutoResyncKeybind"]  = ConsoleModule.AutoResyncKeybind;
+                GetNamed("ConsoleModule").Settings["BufferingKeybind"]   = ConsoleModule.BufferingKeybind;
+                GetNamed("ConsoleModule").Settings["GamePauseKeybind"]   = ConsoleModule.GamePauseKeybind;
+                GetNamed("ConsoleModule").Settings["PortFilterKeybind"]  = ConsoleModule.PortFilterKeybind;
+                GetNamed("ConsoleModule").Settings["Port2FilterKeybind"] = ConsoleModule.Port2FilterKeybind;
+
                 File.WriteAllText(ConfigPath, Instance.Serialize(true));
                 Logger.Info($"Config saved");
             }
