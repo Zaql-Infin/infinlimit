@@ -10,6 +10,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Shapes;
@@ -318,10 +319,52 @@ namespace InfinLimit.Windows
             RebuildRows();
         }
 
+        // ── drag / free-position ─────────────────────────────────────────────────
+
+        private MouseButtonEventHandler _dragHandler;
+
+        public void EnableDrag()
+        {
+            // Remove WS_EX_TRANSPARENT so the window receives mouse input
+            var handle = new WindowInteropHelper(this).Handle;
+            int style  = GetWindowLong(handle, GWL_EXSTYLE);
+            style &= ~WS_EX_TRANSPARENT;
+            SetWindowLong(handle, GWL_EXSTYLE, style);
+
+            _dragHandler = (_, e) => { if (e.LeftButton == MouseButtonState.Pressed) DragMove(); };
+            MouseLeftButtonDown += _dragHandler;
+
+            Config.Instance.Settings.Overlay_FreePosition = true;
+        }
+
+        public void DisableDrag()
+        {
+            if (_dragHandler != null)
+            {
+                MouseLeftButtonDown -= _dragHandler;
+                _dragHandler = null;
+            }
+
+            // Save current position then re-apply click-through
+            Config.Instance.Settings.Overlay_FreeX = Left;
+            Config.Instance.Settings.Overlay_FreeY = Top;
+            Config.Save();
+
+            ApplyClickThrough();
+        }
+
         // ── positioning ──────────────────────────────────────────────────────────
 
         public bool TryFollowWindow()
         {
+            // Free-position mode: stay where the user dragged it
+            if (Config.Instance.Settings.Overlay_FreePosition)
+            {
+                Left = Config.Instance.Settings.Overlay_FreeX;
+                Top  = Config.Instance.Settings.Overlay_FreeY;
+                return true;
+            }
+
             if (cachedProcess == null) return false;
             if (!GetWindowRect(cachedProcess.MainWindowHandle, out var rect)) return false;
 
@@ -331,8 +374,8 @@ namespace InfinLimit.Windows
             var m       = src.CompositionTarget.TransformFromDevice;
             var topLeft = m.Transform(new Point(rect.Left, rect.Top));
 
-            Left = topLeft.X;
-            Top  = topLeft.Y;
+            Left = topLeft.X + Config.Instance.Settings.Overlay_LeftOffset;
+            Top  = topLeft.Y + Config.Instance.Settings.Overlay_BottomOffset;
 
             return true;
         }

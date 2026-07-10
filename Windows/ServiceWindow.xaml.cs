@@ -90,7 +90,18 @@ namespace InfinLimit
 
         private void ExitButtonClick(object sender, RoutedEventArgs e)
         {
+            LockOverlayIfMoving();
             this.Close();
+        }
+
+        private void LockOverlayIfMoving()
+        {
+            if (_movingOverlay)
+            {
+                _movingOverlay = false;
+                MainWindow.Instance.overlay?.DisableDrag();
+                if (MoveOverlayBtn != null) MoveOverlayBtn.Text = "Move Overlay";
+            }
         }
 
         private void MAIN_Clock_Click(object sender, RoutedEventArgs e)
@@ -379,6 +390,26 @@ namespace InfinLimit
             Config.Instance.Settings.Overlay_HideFromCapture = StreamProof.Checked;
             Config.Save();
             InfinLimit.Utility.CaptureGuard.ApplyToAll();
+        }
+
+        private bool _movingOverlay = false;
+
+        private void MoveOverlay_Click(object sender, RoutedEventArgs e)
+        {
+            var overlay = MainWindow.Instance.overlay;
+            if (overlay == null) return;
+
+            _movingOverlay = !_movingOverlay;
+            if (_movingOverlay)
+            {
+                overlay.EnableDrag();
+                MoveOverlayBtn.Text = "Lock Overlay";
+            }
+            else
+            {
+                overlay.DisableDrag();
+                MoveOverlayBtn.Text = "Move Overlay";
+            }
         }
     }
 }
