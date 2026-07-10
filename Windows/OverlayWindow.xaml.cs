@@ -28,7 +28,7 @@ namespace InfinLimit.Windows
         private struct FeatureRow
         {
             public string Label;
-            public Func<bool> EnabledGetter;
+            public Func<List<Keycode>> BindGetter;
             public Func<bool> ActiveGetter;
             public Func<DateTime> SinceGetter;
         }
@@ -36,9 +36,10 @@ namespace InfinLimit.Windows
         private struct DualFeatureRow
         {
             public string Label;
-            public Func<bool> EnabledGetter;
+            public Func<List<Keycode>> DlBindGetter;
             public Func<bool> DlActiveGetter;
             public Func<DateTime> DlSinceGetter;
+            public Func<List<Keycode>> UlBindGetter;
             public Func<bool> UlActiveGetter;
             public Func<DateTime> UlSinceGetter;
         }
@@ -52,8 +53,8 @@ namespace InfinLimit.Windows
         private const uint KEY_COLOR_COLORREF = 0x00FF00FF;
 
         private readonly DispatcherTimer _timer;
-        private readonly TimeSpan _activeInterval = TimeSpan.FromSeconds(2);
-        private readonly TimeSpan _idleInterval   = TimeSpan.FromSeconds(5);
+        private readonly TimeSpan _activeInterval = TimeSpan.FromMilliseconds(500);
+        private readonly TimeSpan _idleInterval   = TimeSpan.FromSeconds(1.5);
 
         private List<FeatureRow>     _featureRows = new();
         private List<DualFeatureRow> _dualRows    = new();
@@ -68,7 +69,6 @@ namespace InfinLimit.Windows
         private Ellipse _raidCountDot;
 
         private bool _dragging;
-        private DateTime _openedAt = DateTime.Now;
 
         private static Process  cachedProcess        = null;
         private static bool     LastGameFocusResult  = false;
@@ -103,6 +103,11 @@ namespace InfinLimit.Windows
                 style &= ~WS_EX_TRANSPARENT;
             SetWindowLong(handle, GWL_EXSTYLE, style);
             SetLayeredWindowAttributes(handle, KEY_COLOR_COLORREF, 255, LWA_COLORKEY);
+        }
+
+        public void RefreshModules()
+        {
+            RebuildRows();
         }
 
         public OverlayWindow()
@@ -140,9 +145,10 @@ namespace InfinLimit.Windows
                 _dualRows.Add(new DualFeatureRow
                 {
                     Label          = "3074",
-                    EnabledGetter  = () => pve.IsEnabled,
+                    DlBindGetter   = () => Config.GetNamed("PVE").Keybind,
                     DlActiveGetter = () => PveModule.Inbound,
                     DlSinceGetter  = () => pve.StartTime,
+                    UlBindGetter   = () => PveModule.OutboundKeybind,
                     UlActiveGetter = () => PveModule.Outbound,
                     UlSinceGetter  = () => pve.StartTime,
                 });
@@ -151,9 +157,10 @@ namespace InfinLimit.Windows
                 _dualRows.Add(new DualFeatureRow
                 {
                     Label          = "27K",
-                    EnabledGetter  = () => pvp.IsEnabled,
+                    DlBindGetter   = () => Config.GetNamed("PVP").Keybind,
                     DlActiveGetter = () => PvpModule.Inbound,
                     DlSinceGetter  = () => pvp.StartTime,
+                    UlBindGetter   = () => PvpModule.OutboundKeybind,
                     UlActiveGetter = () => PvpModule.Outbound,
                     UlSinceGetter  = () => pvp.StartTime,
                 });
@@ -162,7 +169,7 @@ namespace InfinLimit.Windows
                 _featureRows.Add(new FeatureRow
                 {
                     Label         = "30K",
-                    EnabledGetter = () => inst.IsEnabled,
+                    BindGetter    = () => Config.GetNamed("З0K").Keybind,
                     ActiveGetter  = () => inst.IsActivated,
                     SinceGetter   = () => inst.StartTime,
                 });
@@ -171,7 +178,7 @@ namespace InfinLimit.Windows
                 _featureRows.Add(new FeatureRow
                 {
                     Label         = "7500",
-                    EnabledGetter = () => api.IsEnabled,
+                    BindGetter    = () => Config.GetNamed("API Block").Keybind,
                     ActiveGetter  = () => api.IsActivated,
                     SinceGetter   = () => api.StartTime,
                 });
@@ -180,7 +187,7 @@ namespace InfinLimit.Windows
                 _featureRows.Add(new FeatureRow
                 {
                     Label         = "Game Pauser",
-                    EnabledGetter = () => pauser.IsEnabled,
+                    BindGetter    = () => Config.GetNamed("GamePauser").Keybind,
                     ActiveGetter  = () => pauser.IsActivated,
                     SinceGetter   = () => pauser.StartTime,
                 });
@@ -259,11 +266,10 @@ namespace InfinLimit.Windows
         {
             var accent = (Application.Current.Resources["AccentColor"] as SolidColorBrush) ?? Brushes.LimeGreen;
 
-            // instance header
-            var xbox = InterceptionManager.GetProvider("Xbox") as XboxProvider;
-            if (xbox != null)
+            // instance header — reads from 30k provider which tracks instance duration
+            if (InterceptionManager.GetProvider("30000") is _30000_Provider prov30k)
             {
-                var dur = xbox.InstanceDuration();
+                var dur  = prov30k.InstanceDuration();
                 bool show = dur > TimeSpan.Zero;
                 _instanceRow.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
                 if (show)
@@ -282,16 +288,16 @@ namespace InfinLimit.Windows
                 _raidCountDot.Fill = accent;
             }
 
-            // dual rows — always visible, dimmed when disabled
+            // dual rows — visible only when a keybind is configured for either direction
             foreach (var dr in _dualRows)
             {
                 if (!_dualVisuals.TryGetValue(dr.Label, out var v)) continue;
-                bool enabled = dr.EnabledGetter();
-                v.row.Visibility = Visibility.Visible;
-                v.row.Opacity    = enabled ? 1.0 : 0.35;
+                bool hasBind = dr.DlBindGetter().Any() || dr.UlBindGetter().Any();
+                v.row.Visibility = hasBind ? Visibility.Visible : Visibility.Collapsed;
+                if (!hasBind) continue;
 
-                bool dlOn = enabled && dr.DlActiveGetter();
-                bool ulOn = enabled && dr.UlActiveGetter();
+                bool dlOn = dr.DlActiveGetter();
+                bool ulOn = dr.UlActiveGetter();
                 v.dot.Fill      = (dlOn || ulOn) ? accent : Brushes.Gray;
                 v.dl.Foreground = dlOn ? accent : Brushes.Gray; v.dl.Opacity = dlOn ? 1.0 : 0.4;
                 v.ul.Foreground = ulOn ? accent : Brushes.Gray; v.ul.Opacity = ulOn ? 1.0 : 0.4;
@@ -302,26 +308,27 @@ namespace InfinLimit.Windows
                 v.timer.Content = FormatElapsed(since != DateTime.MinValue ? DateTime.Now - since : TimeSpan.Zero);
             }
 
-            // single rows — always visible, dimmed when disabled
+            // single rows — visible only when a keybind is configured
             foreach (var fr in _featureRows)
             {
                 if (!_rowVisuals.TryGetValue(fr.Label, out var v)) continue;
-                bool enabled = fr.EnabledGetter();
-                v.row.Visibility = Visibility.Visible;
-                v.row.Opacity    = enabled ? 1.0 : 0.35;
+                bool hasBind = fr.BindGetter().Any();
+                v.row.Visibility = hasBind ? Visibility.Visible : Visibility.Collapsed;
+                if (!hasBind) continue;
 
-                bool on = enabled && fr.ActiveGetter();
+                bool on = fr.ActiveGetter();
                 v.dot.Fill      = on ? accent : Brushes.Gray;
                 var since       = fr.SinceGetter();
                 v.timer.Content = FormatElapsed(on && since != DateTime.MinValue ? DateTime.Now - since : TimeSpan.Zero);
             }
 
+            InvalidateMeasure();
+            UpdateLayout();
         }
 
         private void Tick(object? sender, EventArgs e)
         {
-            bool inGrace = DateTime.Now - _openedAt < TimeSpan.FromSeconds(4);
-            if (!inGrace && !Config.Instance.Settings.Overlay_FreePosition && !CheckGameFocus())
+            if (!Config.Instance.Settings.Overlay_FreePosition && !CheckGameFocus())
             {
                 Visibility = Visibility.Collapsed;
                 _timer.Interval = _idleInterval;
@@ -339,6 +346,14 @@ namespace InfinLimit.Windows
                 TryFollowWindow();
             }
 
+            RebuildRows();
+        }
+
+        public void EnsureVisibleNow()
+        {
+            _timer.Interval = _activeInterval;
+            if (Visibility == Visibility.Collapsed)
+                this.ElementFadeIn();
             RebuildRows();
         }
 
@@ -414,8 +429,7 @@ namespace InfinLimit.Windows
                 return CheckGameFocus(skipCheck);
             }
 
-            GetWindowThreadProcessId(GetForegroundWindow(), out uint fgPid);
-            if (fgPid != (uint)cachedProcess.Id)
+            if (GetForegroundWindow() != cachedProcess.MainWindowHandle)
                 return LastGameFocusResult = false;
 
             lastCheckTime += TimeSpan.FromSeconds(1.5);
