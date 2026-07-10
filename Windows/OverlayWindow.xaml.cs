@@ -31,11 +31,12 @@ namespace InfinLimit.Windows
 
         private record ModuleIcon(
             PacketModuleBase Module,
-            Path   Icon,
-            Border Circle,
-            Label  DlArrow,   // ↓ download indicator
-            Label  UlArrow,   // ↑ upload indicator
-            Label  Timer
+            Path         Icon,
+            Border       Circle,
+            Label        DlArrow,    // ↓ download indicator
+            Label        UlArrow,    // ↑ upload indicator
+            Label        Timer,
+            StackPanel   InfoPanel   // right-side panel (arrows + timer)
         );
         private readonly List<ModuleIcon> _icons = new();
 
@@ -134,9 +135,9 @@ namespace InfinLimit.Windows
 
                 var circle = new Border
                 {
-                    Width           = 46,
-                    Height          = 46,
-                    CornerRadius    = new CornerRadius(23),
+                    Width           = 44,
+                    Height          = 44,
+                    CornerRadius    = new CornerRadius(22),
                     BorderBrush     = InactiveRingBrush,
                     BorderThickness = new Thickness(1.5),
                     Background      = InactiveBgBrush,
@@ -147,44 +148,53 @@ namespace InfinLimit.Windows
                     ShadowDepth = 0, Color = Colors.Black, BlurRadius = 6, Opacity = 0.5,
                 };
 
-                // ↓ download arrow
                 var dlArrow = MakeInfoLabel("↓");
-                // ↑ upload arrow
                 var ulArrow = MakeInfoLabel("↑");
-                // elapsed timer
+
                 var timer = new Label
                 {
-                    Foreground          = TimerBrush,
-                    FontFamily          = new FontFamily("Bahnschrift Light"),
-                    FontSize            = 11,
-                    FontWeight          = FontWeights.Bold,
-                    Padding             = new Thickness(0),
+                    Foreground                 = TimerBrush,
+                    FontFamily                 = new FontFamily("Consolas"),
+                    FontSize                   = 13,
+                    FontWeight                 = FontWeights.Normal,
+                    Padding                    = new Thickness(0),
                     VerticalContentAlignment   = VerticalAlignment.Center,
-                    HorizontalContentAlignment = HorizontalAlignment.Center,
-                    Visibility          = Visibility.Collapsed,
+                    HorizontalContentAlignment = HorizontalAlignment.Left,
+                    Visibility                 = Visibility.Collapsed,
                 };
 
-                // row below the circle: [↓] [↑] [timer]
-                var infoRow = new StackPanel
+                // arrows stacked vertically to the right of the circle
+                var arrowStack = new StackPanel
                 {
-                    Orientation         = Orientation.Horizontal,
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    Margin              = new Thickness(0, 3, 0, 0),
+                    Orientation       = Orientation.Vertical,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Margin            = new Thickness(4, 0, 2, 0),
                 };
-                infoRow.Children.Add(dlArrow);
-                infoRow.Children.Add(ulArrow);
-                infoRow.Children.Add(timer);
+                arrowStack.Children.Add(ulArrow);  // ↑ on top
+                arrowStack.Children.Add(dlArrow);  // ↓ on bottom
 
+                // info panel: arrows | timer — hidden until active
+                var infoPanel = new StackPanel
+                {
+                    Orientation       = Orientation.Horizontal,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Visibility        = Visibility.Collapsed,
+                };
+                infoPanel.Children.Add(arrowStack);
+                infoPanel.Children.Add(timer);
+
+                // cell: [circle] [info]
                 var cell = new StackPanel
                 {
-                    Orientation = Orientation.Vertical,
-                    Margin      = new Thickness(3, 0, 3, 0),
+                    Orientation       = Orientation.Horizontal,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Margin            = new Thickness(3, 0, 3, 0),
                 };
                 cell.Children.Add(circle);
-                cell.Children.Add(infoRow);
+                cell.Children.Add(infoPanel);
 
                 Modules.Children.Add(cell);
-                _icons.Add(new ModuleIcon(mod, icon, circle, dlArrow, ulArrow, timer));
+                _icons.Add(new ModuleIcon(mod, icon, circle, dlArrow, ulArrow, timer, infoPanel));
             }
         }
 
@@ -192,6 +202,9 @@ namespace InfinLimit.Windows
 
         private static string FormatElapsed(TimeSpan t)
             => t <= TimeSpan.Zero ? "" : (t.TotalHours >= 1 ? t.ToString(@"h\:mm\:ss") : t.ToString(@"mm\:ss"));
+        // zero-padded mm:ss like "00:01"
+        private static string FormatTimer(TimeSpan t)
+            => t <= TimeSpan.Zero ? "" : (t.TotalHours >= 1 ? t.ToString(@"h\:mm\:ss") : $"{(int)t.TotalMinutes:D2}:{t.Seconds:D2}");
 
         private void RebuildRows()
         {
@@ -220,25 +233,23 @@ namespace InfinLimit.Windows
 
                 bool active = dl || ul;
 
-                mi.Icon.Fill        = active ? ActiveBrush       : InactiveBrush;
+                mi.Icon.Fill          = active ? ActiveBrush      : InactiveBrush;
                 mi.Circle.BorderBrush = active ? ActiveRingBrush  : InactiveRingBrush;
                 mi.Circle.Background  = active ? ActiveBgBrush    : InactiveBgBrush;
 
-                // arrows — only show for PVE/PVP (bidirectional); for others just DL arrow acts as "on"
+                // arrows — only for PVE/PVP (bidirectional)
                 bool isBidirectional = mi.Module is PveModule or PvpModule;
-                mi.DlArrow.Visibility = dl ? Visibility.Visible : Visibility.Collapsed;
                 mi.UlArrow.Visibility = (isBidirectional && ul) ? Visibility.Visible : Visibility.Collapsed;
-                // add spacing between arrows when both arrows show
-                mi.DlArrow.Margin = (isBidirectional && dl && ul) ? new Thickness(0, 0, 2, 0) : new Thickness(0);
+                mi.DlArrow.Visibility = (isBidirectional && dl) ? Visibility.Visible : Visibility.Collapsed;
 
-                // timer
+                // timer (mm:ss zero-padded)
                 if (active && since != DateTime.MinValue)
                 {
-                    var text = FormatElapsed(DateTime.Now - since);
+                    var text = FormatTimer(DateTime.Now - since);
                     if (!string.IsNullOrEmpty(text))
                     {
                         mi.Timer.Content    = text;
-                        mi.Timer.Margin     = (dl || ul) ? new Thickness(3, 0, 0, 0) : new Thickness(0);
+                        mi.Timer.Margin     = isBidirectional ? new Thickness(4, 0, 0, 0) : new Thickness(0);
                         mi.Timer.Visibility = Visibility.Visible;
                     }
                     else
@@ -250,6 +261,9 @@ namespace InfinLimit.Windows
                 {
                     mi.Timer.Visibility = Visibility.Collapsed;
                 }
+
+                // show/hide the entire right-side info panel
+                mi.InfoPanel.Visibility = active ? Visibility.Visible : Visibility.Collapsed;
             }
 
             // Instance timer from 30k provider

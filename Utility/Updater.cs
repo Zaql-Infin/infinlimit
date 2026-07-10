@@ -11,8 +11,8 @@ namespace InfinLimit.Utility
 {
     public static class Updater
     {
-        public const int    Version       = 78;
-        public const string VersionString = "78.0.0";
+        public const int    Version       = 79;
+        public const string VersionString = "79.0.0";
 
         public const string RepoOwner = "Zaql-Infin";
         public const string RepoName  = "infinlimit";
