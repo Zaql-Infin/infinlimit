@@ -1,3 +1,4 @@
+using InfinLimit.Controls;
 using InfinLimit.Interception;
 using InfinLimit.Interception.Modules;
 using InfinLimit.Interception.PacketProviders;
@@ -9,70 +10,30 @@ using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
-using System.Windows.Shapes;
 using System.Windows.Threading;
 
 namespace InfinLimit.Windows
 {
     public partial class OverlayWindow : Window
     {
-        public struct RECT
-        {
-            public int Left, Top, Right, Bottom;
-        }
+        public struct RECT { public int Left, Top, Right, Bottom; }
 
-        private struct FeatureRow
-        {
-            public string Label;
-            public Func<List<Keycode>> BindGetter;
-            public Func<bool> ActiveGetter;
-            public Func<DateTime> SinceGetter;
-        }
-
-        private struct DualFeatureRow
-        {
-            public string Label;
-            public Func<List<Keycode>> DlBindGetter;
-            public Func<bool> DlActiveGetter;
-            public Func<DateTime> DlSinceGetter;
-            public Func<List<Keycode>> UlBindGetter;
-            public Func<bool> UlActiveGetter;
-            public Func<DateTime> UlSinceGetter;
-        }
-
-        private const int  WS_EX_TOOLWINDOW = 0x80;
-        private const int  WS_EX_TRANSPARENT = 0x20;
-        private const int  WS_EX_LAYERED     = 0x80000;
-        private const int  GWL_EXSTYLE       = -20;
-        private const uint LWA_COLORKEY      = 0x1;
-        // Magenta key colour: #FF00FF — COLORREF is 0x00BBGGRR → 0x00FF00FF
-        private const uint KEY_COLOR_COLORREF = 0x00FF00FF;
+        private const int WS_EX_TOOLWINDOW = 0x80;
+        private const int WS_EX_TRANSPARENT = 0x20;
+        private const int GWL_EXSTYLE       = -20;
 
         private readonly DispatcherTimer _timer;
         private readonly TimeSpan _activeInterval = TimeSpan.FromMilliseconds(500);
         private readonly TimeSpan _idleInterval   = TimeSpan.FromSeconds(1.5);
 
-        private List<FeatureRow>     _featureRows = new();
-        private List<DualFeatureRow> _dualRows    = new();
+        private readonly List<EnabledModuleTimer> _moduleTimers = new();
+        private PincushionEffect _pincushion;
 
-        private Dictionary<string, (Border row, Ellipse dot, Label timer)>                     _rowVisuals  = new();
-        private Dictionary<string, (Border row, Ellipse dot, Label dl, Label ul, Label timer)> _dualVisuals = new();
-
-        private Border _instanceRow;
-        private Label  _instanceTimer;
-        private Border _raidCountRow;
-        private Label  _raidCountLabel;
-        private Ellipse _raidCountDot;
-
-        private bool _dragging;
-
-        private static Process  cachedProcess        = null;
-        private static bool     LastGameFocusResult  = false;
-        private static DateTime lastCheckTime        = DateTime.MinValue;
+        private static Process  cachedProcess       = null;
+        private static bool     LastGameFocusResult = false;
+        private static DateTime lastCheckTime       = DateTime.MinValue;
 
         public static OverlayWindow Current { get; private set; }
 
@@ -81,7 +42,6 @@ namespace InfinLimit.Windows
         [DllImport("user32.dll")] private static extern int    GetWindowLong(IntPtr hwnd, int index);
         [DllImport("user32.dll")] private static extern int    SetWindowLong(IntPtr hwnd, int index, int style);
         [DllImport("user32.dll")] private static extern uint   GetWindowThreadProcessId(IntPtr hwnd, out uint processId);
-        [DllImport("user32.dll")] private static extern bool   SetLayeredWindowAttributes(IntPtr hwnd, uint crKey, byte bAlpha, uint dwFlags);
 
         protected override void OnSourceInitialized(EventArgs e)
         {
@@ -94,241 +54,92 @@ namespace InfinLimit.Windows
             var handle = new WindowInteropHelper(this).Handle;
             if (handle == IntPtr.Zero) return;
             int style = GetWindowLong(handle, GWL_EXSTYLE);
-            // WS_EX_LAYERED enables color-key compositing (GPU path, no software renderer).
-            // WS_EX_TOOLWINDOW hides from Alt-Tab. WS_EX_TRANSPARENT = click-through.
-            style |= WS_EX_LAYERED | WS_EX_TOOLWINDOW;
-            if (!Config.Instance.Settings.Overlay_FreePosition)
-                style |= WS_EX_TRANSPARENT;
-            else
-                style &= ~WS_EX_TRANSPARENT;
+            // WS_EX_TOOLWINDOW: hide from Alt-Tab.
+            // WS_EX_TRANSPARENT: pass all clicks through to the game beneath.
+            // No WS_EX_LAYERED needed — AllowsTransparency handles compositing.
+            style |= WS_EX_TOOLWINDOW | WS_EX_TRANSPARENT;
             SetWindowLong(handle, GWL_EXSTYLE, style);
-            SetLayeredWindowAttributes(handle, KEY_COLOR_COLORREF, 255, LWA_COLORKEY);
         }
 
         public void RefreshModules()
         {
-            RebuildRows();
+            foreach (var emt in _moduleTimers)
+                emt.UpdateTimer();
         }
 
         public OverlayWindow()
         {
             InitializeComponent();
-            Current  = this;
-            Topmost  = true;
+            Current = this;
+            Topmost = true;
 
             _timer = new DispatcherTimer(DispatcherPriority.Background) { Interval = _activeInterval };
             _timer.Tick += Tick;
             Closed += (_, __) => { Current = null; _timer.Stop(); };
             Loaded += (_, __) =>
             {
-                BuildFeatureRows();
-                BuildRowVisuals();
-                PositionFree();
+                BuildModuleTimers();
+                ApplyPincushion();
                 _timer.Start();
             };
         }
 
-        // ── row descriptors ─────────────────────────────────────────────────────
-
-        private void BuildFeatureRows()
+        private void BuildModuleTimers()
         {
-            var pve    = InterceptionManager.Modules.OfType<PveModule>().FirstOrDefault();
-            var pvp    = InterceptionManager.Modules.OfType<PvpModule>().FirstOrDefault();
-            var inst   = InterceptionManager.Modules.OfType<InstanceModule>().FirstOrDefault();
-            var api    = InterceptionManager.Modules.OfType<ApiModule>().FirstOrDefault();
-            var pauser = InterceptionManager.Modules.OfType<PauserModule>().FirstOrDefault();
+            Modules.Children.Clear();
+            _moduleTimers.Clear();
 
-            _featureRows.Clear();
-            _dualRows.Clear();
-
-            if (pve != null)
-                _dualRows.Add(new DualFeatureRow
-                {
-                    Label          = "3074",
-                    DlBindGetter   = () => Config.GetNamed("PVE").Keybind,
-                    DlActiveGetter = () => PveModule.Inbound,
-                    DlSinceGetter  = () => pve.StartTime,
-                    UlBindGetter   = () => PveModule.OutboundKeybind,
-                    UlActiveGetter = () => PveModule.Outbound,
-                    UlSinceGetter  = () => pve.StartTime,
-                });
-
-            if (pvp != null)
-                _dualRows.Add(new DualFeatureRow
-                {
-                    Label          = "27K",
-                    DlBindGetter   = () => Config.GetNamed("PVP").Keybind,
-                    DlActiveGetter = () => PvpModule.Inbound,
-                    DlSinceGetter  = () => pvp.StartTime,
-                    UlBindGetter   = () => PvpModule.OutboundKeybind,
-                    UlActiveGetter = () => PvpModule.Outbound,
-                    UlSinceGetter  = () => pvp.StartTime,
-                });
-
-            if (inst != null)
-                _featureRows.Add(new FeatureRow
-                {
-                    Label         = "30K",
-                    BindGetter    = () => Config.GetNamed("З0K").Keybind,
-                    ActiveGetter  = () => inst.IsActivated,
-                    SinceGetter   = () => inst.StartTime,
-                });
-
-            if (api != null)
-                _featureRows.Add(new FeatureRow
-                {
-                    Label         = "7500",
-                    BindGetter    = () => Config.GetNamed("API Block").Keybind,
-                    ActiveGetter  = () => api.IsActivated,
-                    SinceGetter   = () => api.StartTime,
-                });
-
-            if (pauser != null)
-                _featureRows.Add(new FeatureRow
-                {
-                    Label         = "Game Pauser",
-                    BindGetter    = () => Config.GetNamed("GamePauser").Keybind,
-                    ActiveGetter  = () => pauser.IsActivated,
-                    SinceGetter   = () => pauser.StartTime,
-                });
+            // Module strip order mirrors DarkLimiter: PVE, PVP, 30K instance, API, GamePauser
+            var names = new[] { "PVE", "PVP", "З0K", "API Block", "GamePauser" };
+            foreach (var name in names)
+            {
+                if (InterceptionManager.GetModule(name) == null) continue;
+                var emt = new EnabledModuleTimer(name);
+                _moduleTimers.Add(emt);
+                Modules.Children.Add(emt);
+            }
         }
 
-        // ── build UI rows ────────────────────────────────────────────────────────
-
-        private void BuildRowVisuals()
+        private void ApplyPincushion()
         {
-            Rows.Children.Clear();
-            _rowVisuals.Clear();
-            _dualVisuals.Clear();
-
-            // ── instance header (timer + divider) ───────────────────────────────
-            var instDot = Dot(9);
-            var instLbl = new Label { Content = "Instance", Foreground = Brushes.White, FontSize = 14, FontWeight = FontWeights.Bold, Padding = new Thickness(0), VerticalContentAlignment = VerticalAlignment.Center, Opacity = 0.9 };
-            _instanceTimer = new Label { Content = "", Foreground = Brushes.White, FontSize = 18, FontWeight = FontWeights.Bold, FontFamily = new FontFamily("Consolas"), Padding = new Thickness(10, 0, 0, 0), VerticalContentAlignment = VerticalAlignment.Center };
-            var instSp = H(instDot, instLbl, _instanceTimer);
-            var instDivider = new Rectangle { Height = 1, Fill = new SolidColorBrush(Color.FromArgb(60, 255, 255, 255)), Margin = new Thickness(0, 6, 0, 4) };
-            var instPanel = new StackPanel(); instPanel.Children.Add(instSp); instPanel.Children.Add(instDivider);
-            _instanceRow = new Border { Child = instPanel, Margin = new Thickness(0, 1, 0, 2), Visibility = Visibility.Collapsed };
-            Rows.Children.Add(_instanceRow);
-            _rowVisuals["__instance__"] = (_instanceRow, instDot, _instanceTimer);
-
-            // ── raid count row (+ divider) ───────────────────────────────────────
-            _raidCountDot   = Dot(9);
-            _raidCountLabel = new Label { Content = "", Foreground = Brushes.White, FontSize = 16, FontWeight = FontWeights.Bold, FontFamily = new FontFamily("Consolas"), Padding = new Thickness(0), VerticalContentAlignment = VerticalAlignment.Center };
-            var raidSp = H(_raidCountDot, _raidCountLabel);
-            var raidDivider = new Rectangle { Height = 1, Fill = new SolidColorBrush(Color.FromArgb(60, 255, 255, 255)), Margin = new Thickness(0, 6, 0, 4) };
-            var raidPanel = new StackPanel(); raidPanel.Children.Add(raidSp); raidPanel.Children.Add(raidDivider);
-            _raidCountRow = new Border { Child = raidPanel, Margin = new Thickness(0, 1, 0, 2), Visibility = Visibility.Collapsed };
-            Rows.Children.Add(_raidCountRow);
-
-            // ── dual rows (3074, 27K) ────────────────────────────────────────────
-            foreach (var dr in _dualRows)
-            {
-                var dot    = Dot(7);
-                var name   = NameLbl(dr.Label);
-                var dlTag  = DirTag("DL");
-                var ulTag  = DirTag("UL");
-                var tmr    = TimerLbl();
-                var border = Row(H(dot, name, dlTag, ulTag, tmr));
-                Rows.Children.Add(border);
-                _dualVisuals[dr.Label] = (border, dot, dlTag, ulTag, tmr);
-            }
-
-            // ── single rows (30K, 7500, Game Pauser) ────────────────────────────
-            foreach (var fr in _featureRows)
-            {
-                var dot    = Dot(7);
-                var name   = NameLbl(fr.Label);
-                var tmr    = TimerLbl();
-                var border = Row(H(dot, name, tmr));
-                Rows.Children.Add(border);
-                _rowVisuals[fr.Label] = (border, dot, tmr);
-            }
-
-            // helpers
-            static Ellipse Dot(double size) => new Ellipse { Width = size, Height = size, Fill = Brushes.Gray, Margin = new Thickness(0, 0, size < 9 ? 6 : 8, 0), VerticalAlignment = VerticalAlignment.Center };
-            static Label NameLbl(string text) => new Label { Content = text, Foreground = Brushes.White, FontSize = 12, Padding = new Thickness(0), VerticalContentAlignment = VerticalAlignment.Center, Opacity = 0.85 };
-            static Label DirTag(string text) => new Label { Content = text, FontSize = 9, FontWeight = FontWeights.Bold, FontFamily = new FontFamily("Consolas"), Padding = new Thickness(4, 0, 0, 0), VerticalContentAlignment = VerticalAlignment.Center, Foreground = Brushes.Gray, Opacity = 0.4 };
-            static Label TimerLbl() => new Label { Content = "", Foreground = Brushes.White, FontSize = 11, FontFamily = new FontFamily("Consolas"), Padding = new Thickness(6, 0, 0, 0), VerticalContentAlignment = VerticalAlignment.Center, Opacity = 0.6 };
-            static StackPanel H(params UIElement[] children) { var sp = new StackPanel { Orientation = Orientation.Horizontal }; foreach (var c in children) sp.Children.Add(c); return sp; }
-            static Border Row(UIElement content) => new Border { Child = content, Margin = new Thickness(0, 1, 0, 1), Visibility = Visibility.Collapsed };
+            _pincushion = new PincushionEffect { Power = -0.31f };
+            Root.Effect = _pincushion;
         }
 
         // ── update logic ─────────────────────────────────────────────────────────
 
-        private static string FormatElapsed(TimeSpan t)
-        {
-            if (t <= TimeSpan.Zero) return "";
-            return t.TotalHours >= 1 ? t.ToString(@"hh\:mm\:ss") : t.ToString(@"mm\:ss");
-        }
-
         private void RebuildRows()
         {
-            var accent = (Application.Current.Resources["AccentColor"] as SolidColorBrush) ?? Brushes.LimeGreen;
+            foreach (var emt in _moduleTimers)
+                emt.UpdateTimer();
 
-            // instance header — reads from 30k provider which tracks instance duration
+            // Instance timer from 30k provider
             if (InterceptionManager.GetProvider("30000") is _30000_Provider prov30k)
             {
-                var dur  = prov30k.InstanceDuration();
-                bool show = dur > TimeSpan.Zero;
-                _instanceRow.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
-                if (show)
+                var dur = prov30k.InstanceDuration();
+                if (dur > TimeSpan.Zero)
                 {
-                    _rowVisuals["__instance__"].dot.Fill = accent;
-                    _instanceTimer.Content = FormatElapsed(dur);
+                    InstanceTimerLabel.Visibility = Visibility.Visible;
+                    InstanceTimerLabel.Content = dur.TotalHours >= 1
+                        ? dur.ToString(@"hh\:mm\:ss")
+                        : dur.ToString(@"mm\:ss");
+                }
+                else
+                {
+                    InstanceTimerLabel.Visibility = Visibility.Collapsed;
                 }
             }
 
-            // raid count
+            // Raid count
             int raids = D2CharacterTracker.RaidsCount;
-            _raidCountRow.Visibility = raids > 0 ? Visibility.Visible : Visibility.Collapsed;
+            RaidStack.Visibility = raids > 0 ? Visibility.Visible : Visibility.Collapsed;
             if (raids > 0)
-            {
-                _raidCountLabel.Content = $"Today: {raids} Raid{(raids == 1 ? "" : "s")}";
-                _raidCountDot.Fill = accent;
-            }
-
-            // dual rows — visible only when a keybind is configured for either direction
-            foreach (var dr in _dualRows)
-            {
-                if (!_dualVisuals.TryGetValue(dr.Label, out var v)) continue;
-                bool hasBind = dr.DlBindGetter().Any() || dr.UlBindGetter().Any();
-                v.row.Visibility = hasBind ? Visibility.Visible : Visibility.Collapsed;
-                if (!hasBind) continue;
-
-                bool dlOn = dr.DlActiveGetter();
-                bool ulOn = dr.UlActiveGetter();
-                v.dot.Fill      = (dlOn || ulOn) ? accent : Brushes.Gray;
-                v.dl.Foreground = dlOn ? accent : Brushes.Gray; v.dl.Opacity = dlOn ? 1.0 : 0.4;
-                v.ul.Foreground = ulOn ? accent : Brushes.Gray; v.ul.Opacity = ulOn ? 1.0 : 0.4;
-
-                DateTime since = DateTime.MinValue;
-                if (dlOn) since = dr.DlSinceGetter();
-                if (ulOn) { var s2 = dr.UlSinceGetter(); if (since == DateTime.MinValue || s2 < since) since = s2; }
-                v.timer.Content = FormatElapsed(since != DateTime.MinValue ? DateTime.Now - since : TimeSpan.Zero);
-            }
-
-            // single rows — visible only when a keybind is configured
-            foreach (var fr in _featureRows)
-            {
-                if (!_rowVisuals.TryGetValue(fr.Label, out var v)) continue;
-                bool hasBind = fr.BindGetter().Any();
-                v.row.Visibility = hasBind ? Visibility.Visible : Visibility.Collapsed;
-                if (!hasBind) continue;
-
-                bool on = fr.ActiveGetter();
-                v.dot.Fill      = on ? accent : Brushes.Gray;
-                var since       = fr.SinceGetter();
-                v.timer.Content = FormatElapsed(on && since != DateTime.MinValue ? DateTime.Now - since : TimeSpan.Zero);
-            }
-
-            InvalidateMeasure();
-            UpdateLayout();
+                RaidLabel.Content = $"{raids} Raid{(raids == 1 ? "" : "s")} today";
         }
 
         private void Tick(object? sender, EventArgs e)
         {
-            if (!Config.Instance.Settings.Overlay_FreePosition && !CheckGameFocus())
+            if (!CheckGameFocus())
             {
                 Visibility = Visibility.Collapsed;
                 _timer.Interval = _idleInterval;
@@ -359,52 +170,32 @@ namespace InfinLimit.Windows
 
         // ── positioning ──────────────────────────────────────────────────────────
 
-        private void Border_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-        {
-            if (!Config.Instance.Settings.Overlay_FreePosition) return;
-            _dragging = true;
-            DragMove();
-            _dragging = false;
-            ClampToScreen();
-            Config.Instance.Settings.Overlay_FreeX = Left;
-            Config.Instance.Settings.Overlay_FreeY = Top;
-            Config.Save();
-        }
-
-        private void PositionFree()
-        {
-            Left = Config.Instance.Settings.Overlay_FreeX;
-            Top  = Config.Instance.Settings.Overlay_FreeY;
-            ClampToScreen();
-        }
-
         public bool TryFollowWindow()
         {
-            if (Config.Instance.Settings.Overlay_FreePosition) return true;
             if (cachedProcess == null) return false;
             if (!GetWindowRect(cachedProcess.MainWindowHandle, out var rect)) return false;
 
-            // GetWindowRect returns physical pixels; WPF Left/Top are logical DIP units.
-            // Convert to avoid off-screen placement on scaled displays.
-            var src = System.Windows.Interop.HwndSource.FromHwnd(
-                new System.Windows.Interop.WindowInteropHelper(this).Handle);
+            var src = HwndSource.FromHwnd(new WindowInteropHelper(this).Handle);
             if (src?.CompositionTarget == null) return false;
-            var m = src.CompositionTarget.TransformFromDevice;
-            var logical = m.Transform(new System.Windows.Point(rect.Left, rect.Bottom));
 
-            Left = logical.X + 24 + Config.Instance.Settings.Overlay_LeftOffset;
-            Top  = logical.Y - 140 - Config.Instance.Settings.Overlay_BottomOffset;
-            ClampToScreen();
+            // GetWindowRect returns physical pixels; WPF coordinates are logical DIPs.
+            var m       = src.CompositionTarget.TransformFromDevice;
+            var topLeft = m.Transform(new Point(rect.Left, rect.Top));
+            var logSize = m.Transform(new Point(rect.Right - rect.Left, rect.Bottom - rect.Top));
+
+            Left   = topLeft.X;
+            Top    = topLeft.Y;
+            Width  = logSize.X;
+            Height = logSize.Y;
+
+            // Shader expects physical pixel dimensions for correct distortion math
+            if (_pincushion != null)
+            {
+                _pincushion.Width  = (float)(rect.Right  - rect.Left);
+                _pincushion.Height = (float)(rect.Bottom - rect.Top);
+            }
+
             return true;
-        }
-
-        private void ClampToScreen()
-        {
-            var wa = SystemParameters.WorkArea;
-            if (Left < wa.Left) Left = wa.Left;
-            if (Top  < wa.Top)  Top  = wa.Top;
-            if (Left + ActualWidth  > wa.Right)  Left = Math.Max(wa.Left, wa.Right  - ActualWidth);
-            if (Top  + ActualHeight > wa.Bottom) Top  = Math.Max(wa.Top,  wa.Bottom - ActualHeight);
         }
 
         // ── game-focus check ─────────────────────────────────────────────────────
