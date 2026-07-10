@@ -4,13 +4,16 @@
         ShowInTaskbar="False"
         ResizeMode="NoResize"
         WindowStyle="None"
-        Background="Transparent"
-        AllowsTransparency="True"
+        Background="#FFFF00FF"
         Topmost="True"
         SizeToContent="WidthAndHeight"
         x:Name="Win"
         Title="">
-    <Border MouseLeftButtonDown="Border_MouseLeftButtonDown">
-        <StackPanel x:Name="Rows" Margin="8,6,8,6"/>
+    <!-- Background="#FFFF00FF" is magenta — keyed out to transparent by SetLayeredWindowAttributes.
+         The inner Border provides the visible dark panel. -->
+    <Border MouseLeftButtonDown="Border_MouseLeftButtonDown"
+            Background="#CC111111"
+            CornerRadius="6">
+        <StackPanel x:Name="Rows" Margin="10,7,10,7"/>
     </Border>
 </Window>

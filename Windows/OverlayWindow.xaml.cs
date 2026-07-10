@@ -43,9 +43,13 @@ namespace InfinLimit.Windows
             public Func<DateTime> UlSinceGetter;
         }
 
-        private const int WS_EX_TOOLWINDOW = 0x80;
-        private const int WS_EX_TRANSPARENT = 0x20;
-        private const int GWL_EXSTYLE = -20;
+        private const int  WS_EX_TOOLWINDOW = 0x80;
+        private const int  WS_EX_TRANSPARENT = 0x20;
+        private const int  WS_EX_LAYERED     = 0x80000;
+        private const int  GWL_EXSTYLE       = -20;
+        private const uint LWA_COLORKEY      = 0x1;
+        // Magenta key colour: #FF00FF — COLORREF is 0x00BBGGRR → 0x00FF00FF
+        private const uint KEY_COLOR_COLORREF = 0x00FF00FF;
 
         private readonly DispatcherTimer _timer;
         private readonly TimeSpan _activeInterval = TimeSpan.FromSeconds(2);
@@ -77,6 +81,7 @@ namespace InfinLimit.Windows
         [DllImport("user32.dll")] private static extern int    GetWindowLong(IntPtr hwnd, int index);
         [DllImport("user32.dll")] private static extern int    SetWindowLong(IntPtr hwnd, int index, int style);
         [DllImport("user32.dll")] private static extern uint   GetWindowThreadProcessId(IntPtr hwnd, out uint processId);
+        [DllImport("user32.dll")] private static extern bool   SetLayeredWindowAttributes(IntPtr hwnd, uint crKey, byte bAlpha, uint dwFlags);
 
         protected override void OnSourceInitialized(EventArgs e)
         {
@@ -89,10 +94,15 @@ namespace InfinLimit.Windows
             var handle = new WindowInteropHelper(this).Handle;
             if (handle == IntPtr.Zero) return;
             int style = GetWindowLong(handle, GWL_EXSTYLE);
-            style = Config.Instance.Settings.Overlay_FreePosition
-                ? (style & ~WS_EX_TRANSPARENT)
-                : (style |  WS_EX_TRANSPARENT);
-            SetWindowLong(handle, GWL_EXSTYLE, style | WS_EX_TOOLWINDOW);
+            // WS_EX_LAYERED enables color-key compositing (GPU path, no software renderer).
+            // WS_EX_TOOLWINDOW hides from Alt-Tab. WS_EX_TRANSPARENT = click-through.
+            style |= WS_EX_LAYERED | WS_EX_TOOLWINDOW;
+            if (!Config.Instance.Settings.Overlay_FreePosition)
+                style |= WS_EX_TRANSPARENT;
+            else
+                style &= ~WS_EX_TRANSPARENT;
+            SetWindowLong(handle, GWL_EXSTYLE, style);
+            SetLayeredWindowAttributes(handle, KEY_COLOR_COLORREF, 255, LWA_COLORKEY);
         }
 
         public OverlayWindow()
