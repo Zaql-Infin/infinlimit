@@ -1,5 +1,6 @@
-﻿ using InfinLimit.Controls;
+﻿using InfinLimit.Controls;
 using InfinLimit.Utility;
+using InfinLimit.Windows;
 
 using System;
 using System.Collections.Generic;
@@ -99,7 +100,7 @@ namespace InfinLimit
             if (_movingOverlay)
             {
                 _movingOverlay = false;
-                MainWindow.Instance.overlay?.DisableDrag();
+                OverlayWindow.Current?.DisableDrag();
                 if (MoveOverlayBtn != null)   MoveOverlayBtn.Text = "Move Overlay";
                 if (MoveOverlayLabel != null) MoveOverlayLabel.Content = "Overlay position";
             }
@@ -397,8 +398,13 @@ namespace InfinLimit
 
         private void MoveOverlay_Click(object sender, RoutedEventArgs e)
         {
-            var overlay = MainWindow.Instance.overlay;
-            if (overlay == null) return;
+            // OverlayWindow.Current is set in the constructor; MainWindow.overlay is never assigned
+            var overlay = OverlayWindow.Current;
+            if (overlay == null)
+            {
+                overlay = new OverlayWindow();
+                overlay.Show();
+            }
 
             _movingOverlay = !_movingOverlay;
             if (_movingOverlay)
