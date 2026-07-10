@@ -100,7 +100,8 @@ namespace InfinLimit
             {
                 _movingOverlay = false;
                 MainWindow.Instance.overlay?.DisableDrag();
-                if (MoveOverlayBtn != null) MoveOverlayBtn.Text = "Move Overlay";
+                if (MoveOverlayBtn != null)   MoveOverlayBtn.Text = "Move Overlay";
+                if (MoveOverlayLabel != null) MoveOverlayLabel.Content = "Overlay position";
             }
         }
 
@@ -404,11 +405,13 @@ namespace InfinLimit
             {
                 overlay.EnableDrag();
                 MoveOverlayBtn.Text = "Lock Overlay";
+                MoveOverlayLabel.Content = "Move mouse to position →";
             }
             else
             {
                 overlay.DisableDrag();
                 MoveOverlayBtn.Text = "Move Overlay";
+                MoveOverlayLabel.Content = "Overlay position";
             }
         }
     }

@@ -329,22 +329,14 @@ namespace InfinLimit.Windows
 
         // ── drag / free-position ─────────────────────────────────────────────────
 
-        private const int WM_NCHITTEST = 0x0084;
-        private const int HTCAPTION    = 2;
+        [DllImport("user32.dll")]
+        private static extern bool GetCursorPos(out CursorPoint pt);
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct CursorPoint { public int X, Y; }
 
         private bool _isDragging = false;
-        private HwndSourceHook _dragHook;
-
-        private IntPtr DragWndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
-        {
-            // Tell Windows every part of this window is the title bar → native drag
-            if (msg == WM_NCHITTEST)
-            {
-                handled = true;
-                return new IntPtr(HTCAPTION);
-            }
-            return IntPtr.Zero;
-        }
+        private DispatcherTimer _cursorTimer;
 
         public void EnableDrag()
         {
@@ -352,19 +344,26 @@ namespace InfinLimit.Windows
             _isDragging = true;
 
             Visibility = Visibility.Visible;
-
-            var handle = new WindowInteropHelper(this).Handle;
-
-            // Remove WS_EX_TRANSPARENT so the window receives mouse input
-            int style = GetWindowLong(handle, GWL_EXSTYLE);
-            style &= ~WS_EX_TRANSPARENT;
-            SetWindowLong(handle, GWL_EXSTYLE, style);
-
-            // Hook WndProc: return HTCAPTION so Windows handles the drag natively
-            _dragHook = DragWndProc;
-            HwndSource.FromHwnd(handle).AddHook(_dragHook);
-
             Config.Instance.Settings.Overlay_FreePosition = true;
+
+            // Poll cursor position at ~60 fps and move the overlay to follow it.
+            // Avoids all WPF/Win32 hit-test issues — no click required on the overlay.
+            _cursorTimer = new DispatcherTimer(DispatcherPriority.Render)
+            {
+                Interval = TimeSpan.FromMilliseconds(16)
+            };
+            _cursorTimer.Tick += FollowCursor;
+            _cursorTimer.Start();
+        }
+
+        private void FollowCursor(object? sender, EventArgs e)
+        {
+            if (!GetCursorPos(out var pt)) return;
+            var src = HwndSource.FromHwnd(new WindowInteropHelper(this).Handle);
+            if (src?.CompositionTarget == null) return;
+            var wpfPt = src.CompositionTarget.TransformFromDevice.Transform(new Point(pt.X, pt.Y));
+            Left = wpfPt.X - ActualWidth  / 2;
+            Top  = wpfPt.Y - ActualHeight / 2;
         }
 
         public void DisableDrag()
@@ -372,19 +371,12 @@ namespace InfinLimit.Windows
             if (!_isDragging) return;
             _isDragging = false;
 
-            var handle = new WindowInteropHelper(this).Handle;
-            if (handle != IntPtr.Zero && _dragHook != null)
-            {
-                HwndSource.FromHwnd(handle)?.RemoveHook(_dragHook);
-                _dragHook = null;
-            }
+            _cursorTimer?.Stop();
+            _cursorTimer = null;
 
-            // Save current position then re-apply click-through
             Config.Instance.Settings.Overlay_FreeX = Left;
             Config.Instance.Settings.Overlay_FreeY = Top;
             Config.Save();
-
-            ApplyClickThrough();
         }
 
         // ── positioning ──────────────────────────────────────────────────────────
