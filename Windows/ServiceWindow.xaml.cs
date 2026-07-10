@@ -409,9 +409,15 @@ namespace InfinLimit
             _movingOverlay = !_movingOverlay;
             if (_movingOverlay)
             {
+                overlay.OnDragEnded = () =>
+                {
+                    _movingOverlay = false;
+                    MoveOverlayBtn.Text = "Move Overlay";
+                    MoveOverlayLabel.Content = "Overlay position";
+                };
                 overlay.EnableDrag();
                 MoveOverlayBtn.Text = "Lock Overlay";
-                MoveOverlayLabel.Content = "Move mouse to position →";
+                MoveOverlayLabel.Content = "Move mouse → press F11 to lock";
             }
             else
             {

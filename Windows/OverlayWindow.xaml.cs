@@ -1,6 +1,7 @@
 using InfinLimit.Interception;
 using InfinLimit.Interception.Modules;
 using InfinLimit.Interception.PacketProviders;
+using InfinLimit.Models;
 using InfinLimit.Utility;
 
 using System;
@@ -337,6 +338,10 @@ namespace InfinLimit.Windows
 
         private bool _isDragging = false;
         private DispatcherTimer _cursorTimer;
+        private KeyListener.KeysPressedEventHandler _f11Handler;
+
+        // Fired when drag ends (from button OR F11) so callers can update UI
+        public Action OnDragEnded;
 
         public void EnableDrag()
         {
@@ -345,6 +350,14 @@ namespace InfinLimit.Windows
 
             Visibility = Visibility.Visible;
             Config.Instance.Settings.Overlay_FreePosition = true;
+
+            // F11 locks the overlay position from anywhere
+            _f11Handler = keys =>
+            {
+                if (keys.Contains(Keycode.VK_F11))
+                    Dispatcher.Invoke(() => { DisableDrag(); OnDragEnded?.Invoke(); });
+            };
+            KeyListener.KeysPressed += _f11Handler;
 
             // Poll cursor position at ~60 fps and move the overlay to follow it.
             // Avoids all WPF/Win32 hit-test issues — no click required on the overlay.
@@ -370,6 +383,12 @@ namespace InfinLimit.Windows
         {
             if (!_isDragging) return;
             _isDragging = false;
+
+            if (_f11Handler != null)
+            {
+                KeyListener.KeysPressed -= _f11Handler;
+                _f11Handler = null;
+            }
 
             _cursorTimer?.Stop();
             _cursorTimer = null;
