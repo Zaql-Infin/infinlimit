@@ -9,7 +9,7 @@
         AllowsTransparency="True"
         Background="Transparent"
         Topmost="True"
-        SizeToContent="Manual"
+        SizeToContent="WidthAndHeight"
         x:Name="Win"
         Title="">
 
@@ -21,23 +21,10 @@
     <!-- Root element carries the pincushion lens effect; Width/Height set in code -->
     <Grid x:Name="Root">
 
-        <!-- Horizontal gradient line just above the module strip -->
-        <Rectangle VerticalAlignment="Top" HorizontalAlignment="Stretch"
-                   Height="2" Margin="0,42,0,0" IsHitTestVisible="False">
-            <Rectangle.Fill>
-                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                    <GradientStop Color="#bbffffff" Offset="0"/>
-                    <GradientStop Color="#50181818" Offset="0.85"/>
-                    <GradientStop Color="#00000000" Offset="0.95"/>
-                    <GradientStop Color="#00000000" Offset="1"/>
-                </LinearGradientBrush>
-            </Rectangle.Fill>
-        </Rectangle>
-
         <!-- Module strip -->
         <StackPanel x:Name="ModulesGrid"
                     VerticalAlignment="Top" HorizontalAlignment="Left"
-                    Margin="0,44,0,0" IsHitTestVisible="False">
+                    Margin="8,8,8,8" IsHitTestVisible="False">
 
             <!-- Module icons populated in code-behind (Path+Label per module) -->
             <StackPanel x:Name="Modules" Orientation="Horizontal"/>

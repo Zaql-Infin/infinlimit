@@ -238,12 +238,9 @@ namespace InfinLimit.Windows
 
             var m       = src.CompositionTarget.TransformFromDevice;
             var topLeft = m.Transform(new Point(rect.Left, rect.Top));
-            var logSize = m.Transform(new Point(rect.Right - rect.Left, rect.Bottom - rect.Top));
 
-            Left   = topLeft.X;
-            Top    = topLeft.Y;
-            Width  = logSize.X;
-            Height = logSize.Y;
+            Left = topLeft.X;
+            Top  = topLeft.Y;
 
             return true;
         }
