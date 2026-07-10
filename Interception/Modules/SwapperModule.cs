@@ -85,6 +85,9 @@ namespace InfinLimit.Interception.Modules
 
         public static int CurrentProfileIndex = 0;
 
+        // Set true while a keybind button is in capture mode so profile hotkeys don't fire mid-setup
+        public static bool IsCapturingKeybind = false;
+
         #endregion
 
         public SwapperModule() : base("Swapper", true)
@@ -813,16 +816,21 @@ namespace InfinLimit.Interception.Modules
 
         private void ProfileKeybindHandler(LinkedList<Keycode> keycodes)
         {
-            if (IsActivated) return;
+            if (IsActivated || IsCapturingKeybind) return;
+
+            // Pick the most-specific match (most keybind keys) so a longer combo
+            // like [F1+F2] beats a shorter one like [F1] when both would match.
+            int bestIdx = -1, bestCount = 0;
             for (int i = 0; i < 5; i++)
             {
                 var kb = Profiles[i].Keybind;
                 if (kb.Count > 0 && keycodes.Count >= kb.Count && kb.All(x => keycodes.Contains(x)))
                 {
-                    TriggerProfile(i);
-                    return;
+                    if (kb.Count > bestCount) { bestCount = kb.Count; bestIdx = i; }
                 }
             }
+            if (bestIdx >= 0)
+                TriggerProfile(bestIdx);
         }
 
         #endregion

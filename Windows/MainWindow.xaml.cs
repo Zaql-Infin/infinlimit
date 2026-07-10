@@ -660,6 +660,7 @@ namespace InfinLimit
                     {
                         InterceptionManager.Modules.ForEach(x => x.UnhookKeybind());
                         KeyListener.KeysPressed += ListeningNewKeybind;
+                        SwapperModule.IsCapturingKeybind = true;
                     }
                     button.ButtonBorder.BorderThickness = new Thickness(1.75);
                     button.ButtonBorder.BorderBrush = Brushes.White;
@@ -678,6 +679,7 @@ namespace InfinLimit
                     {
                         InterceptionManager.Modules.ForEach(x => x.HookKeybind());
                         KeyListener.KeysPressed -= ListeningNewKeybind;
+                        SwapperModule.IsCapturingKeybind = false;
                     }
                     button.ButtonBorder.BorderThickness = new Thickness(0);
                     button.ButtonBorder.BorderBrush = Brushes.Transparent;
