@@ -96,8 +96,11 @@ namespace InfinLimit.Windows
             int style = GetWindowLong(handle, GWL_EXSTYLE);
             // WS_EX_LAYERED enables color-key compositing (GPU path, no software renderer).
             // WS_EX_TOOLWINDOW hides from Alt-Tab. WS_EX_TRANSPARENT = click-through.
-            // Always click-through — overlay never intercepts mouse input.
-            style |= WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_TRANSPARENT;
+            style |= WS_EX_LAYERED | WS_EX_TOOLWINDOW;
+            if (!Config.Instance.Settings.Overlay_FreePosition)
+                style |= WS_EX_TRANSPARENT;
+            else
+                style &= ~WS_EX_TRANSPARENT;
             SetWindowLong(handle, GWL_EXSTYLE, style);
             SetLayeredWindowAttributes(handle, KEY_COLOR_COLORREF, 255, LWA_COLORKEY);
         }
@@ -372,10 +375,10 @@ namespace InfinLimit.Windows
                 new System.Windows.Interop.WindowInteropHelper(this).Handle);
             if (src?.CompositionTarget == null) return false;
             var m = src.CompositionTarget.TransformFromDevice;
-            var logical = m.Transform(new System.Windows.Point(rect.Left, rect.Top));
+            var logical = m.Transform(new System.Windows.Point(rect.Left, rect.Bottom));
 
             Left = logical.X + 24 + Config.Instance.Settings.Overlay_LeftOffset;
-            Top  = logical.Y + 24 + Config.Instance.Settings.Overlay_BottomOffset;
+            Top  = logical.Y - 140 - Config.Instance.Settings.Overlay_BottomOffset;
             ClampToScreen();
             return true;
         }
