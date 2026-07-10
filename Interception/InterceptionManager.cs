@@ -69,6 +69,12 @@ namespace InfinLimit.Interception
 
             if (Config.Instance.CurrentModule is null)
                 Config.Instance.CurrentModule = Modules[0].Name;
+
+            // Reconnect must always be listening so its keybind fires regardless of saved Enabled state.
+            // It subscribes to the 30k provider (already running via InstanceModule) and is harmless when idle.
+            var reconnect = Modules.OfType<ReconnectModule>().FirstOrDefault();
+            if (reconnect != null && !reconnect.IsEnabled)
+                reconnect.StartListening();
         }
     }
 }
