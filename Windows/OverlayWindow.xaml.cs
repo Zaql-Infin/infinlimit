@@ -12,7 +12,6 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
 using System.Windows.Media;
-using System.Windows.Media.Animation;
 using System.Windows.Shapes;
 using System.Windows.Threading;
 
@@ -30,16 +29,24 @@ namespace InfinLimit.Windows
         private readonly TimeSpan _activeInterval = TimeSpan.FromMilliseconds(500);
         private readonly TimeSpan _idleInterval   = TimeSpan.FromSeconds(1.5);
 
-        // Each module icon: the Path to tint and the Label to show timer text
-        private record ModuleIcon(PacketModuleBase Module, Path Icon, Label Timer);
+        private record ModuleIcon(
+            PacketModuleBase Module,
+            Path   Icon,
+            Border Circle,
+            Label  DlArrow,   // ↓ download indicator
+            Label  UlArrow,   // ↑ upload indicator
+            Label  Timer
+        );
         private readonly List<ModuleIcon> _icons = new();
 
-        private static readonly Brush ActiveBrush      = new SolidColorBrush(Color.FromArgb(0xee, 0xff, 0xff, 0xff));
-        private static readonly Brush InactiveBrush    = new SolidColorBrush(Color.FromArgb(0x55, 0xff, 0xff, 0xff));
-        private static readonly Brush ActiveRingBrush  = new SolidColorBrush(Color.FromArgb(0xaa, 0xff, 0xff, 0xff));
-        private static readonly Brush InactiveRingBrush= new SolidColorBrush(Color.FromArgb(0x35, 0xff, 0xff, 0xff));
-        private static readonly Brush ActiveBgBrush    = new SolidColorBrush(Color.FromArgb(0x28, 0xff, 0xff, 0xff));
-        private static readonly Brush InactiveBgBrush  = new SolidColorBrush(Color.FromArgb(0x10, 0xff, 0xff, 0xff));
+        private static readonly Brush ActiveBrush       = new SolidColorBrush(Color.FromArgb(0xee, 0xff, 0xff, 0xff));
+        private static readonly Brush InactiveBrush     = new SolidColorBrush(Color.FromArgb(0x55, 0xff, 0xff, 0xff));
+        private static readonly Brush ActiveRingBrush   = new SolidColorBrush(Color.FromArgb(0xaa, 0xff, 0xff, 0xff));
+        private static readonly Brush InactiveRingBrush = new SolidColorBrush(Color.FromArgb(0x35, 0xff, 0xff, 0xff));
+        private static readonly Brush ActiveBgBrush     = new SolidColorBrush(Color.FromArgb(0x28, 0xff, 0xff, 0xff));
+        private static readonly Brush InactiveBgBrush   = new SolidColorBrush(Color.FromArgb(0x10, 0xff, 0xff, 0xff));
+        private static readonly Brush ArrowBrush        = new SolidColorBrush(Color.FromArgb(0xcc, 0xff, 0xff, 0xff));
+        private static readonly Brush TimerBrush        = new SolidColorBrush(Color.FromArgb(0xaa, 0xff, 0xff, 0xff));
 
         private static Process  cachedProcess       = null;
         private static bool     LastGameFocusResult = false;
@@ -90,6 +97,19 @@ namespace InfinLimit.Windows
 
         // ── build icon strip ──────────────────────────────────────────────────────
 
+        private static Label MakeInfoLabel(string text) => new Label
+        {
+            Content             = text,
+            Foreground          = ArrowBrush,
+            FontFamily          = new FontFamily("Segoe UI"),
+            FontSize            = 11,
+            FontWeight          = FontWeights.Bold,
+            Padding             = new Thickness(0),
+            VerticalContentAlignment   = VerticalAlignment.Center,
+            HorizontalContentAlignment = HorizontalAlignment.Center,
+            Visibility          = Visibility.Collapsed,
+        };
+
         private void BuildIcons()
         {
             Modules.Children.Clear();
@@ -103,13 +123,13 @@ namespace InfinLimit.Windows
 
                 var icon = new Path
                 {
-                    Data              = mod.Icon,
-                    Stretch           = Stretch.Uniform,
-                    Width             = 22,
-                    Height            = 22,
-                    Fill              = InactiveBrush,
+                    Data                = mod.Icon,
+                    Stretch             = Stretch.Uniform,
+                    Width               = 22,
+                    Height              = 22,
+                    Fill                = InactiveBrush,
                     HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center,
+                    VerticalAlignment   = VerticalAlignment.Center,
                 };
 
                 var circle = new Border
@@ -120,7 +140,6 @@ namespace InfinLimit.Windows
                     BorderBrush     = InactiveRingBrush,
                     BorderThickness = new Thickness(1.5),
                     Background      = InactiveBgBrush,
-                    Margin          = new Thickness(3, 0, 3, 0),
                     Child           = icon,
                 };
                 circle.Effect = new System.Windows.Media.Effects.DropShadowEffect
@@ -128,12 +147,44 @@ namespace InfinLimit.Windows
                     ShadowDepth = 0, Color = Colors.Black, BlurRadius = 6, Opacity = 0.5,
                 };
 
-                // timer label appears below the icon row (reuse InstanceTimerLabel area)
-                // — per-module timer shown inline via tooltip or ignored for now
-                var timerLabel = new Label { Visibility = Visibility.Collapsed };
+                // ↓ download arrow
+                var dlArrow = MakeInfoLabel("↓");
+                // ↑ upload arrow
+                var ulArrow = MakeInfoLabel("↑");
+                // elapsed timer
+                var timer = new Label
+                {
+                    Foreground          = TimerBrush,
+                    FontFamily          = new FontFamily("Bahnschrift Light"),
+                    FontSize            = 11,
+                    FontWeight          = FontWeights.Bold,
+                    Padding             = new Thickness(0),
+                    VerticalContentAlignment   = VerticalAlignment.Center,
+                    HorizontalContentAlignment = HorizontalAlignment.Center,
+                    Visibility          = Visibility.Collapsed,
+                };
 
-                Modules.Children.Add(circle);
-                _icons.Add(new ModuleIcon(mod, icon, timerLabel));
+                // row below the circle: [↓] [↑] [timer]
+                var infoRow = new StackPanel
+                {
+                    Orientation         = Orientation.Horizontal,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    Margin              = new Thickness(0, 3, 0, 0),
+                };
+                infoRow.Children.Add(dlArrow);
+                infoRow.Children.Add(ulArrow);
+                infoRow.Children.Add(timer);
+
+                var cell = new StackPanel
+                {
+                    Orientation = Orientation.Vertical,
+                    Margin      = new Thickness(3, 0, 3, 0),
+                };
+                cell.Children.Add(circle);
+                cell.Children.Add(infoRow);
+
+                Modules.Children.Add(cell);
+                _icons.Add(new ModuleIcon(mod, icon, circle, dlArrow, ulArrow, timer));
             }
         }
 
@@ -146,23 +197,48 @@ namespace InfinLimit.Windows
         {
             foreach (var mi in _icons)
             {
-                bool active = mi.Module.IsActivated;
-                mi.Icon.Fill = active ? ActiveBrush : InactiveBrush;
+                bool dl = false, ul = false;
+                DateTime since = DateTime.MinValue;
 
-                // tint the circle ring/bg when active
-                if (mi.Icon.Parent is Border circle)
+                if (mi.Module is PveModule pve)
                 {
-                    circle.BorderBrush = active ? ActiveRingBrush  : InactiveRingBrush;
-                    circle.Background  = active ? ActiveBgBrush    : InactiveBgBrush;
+                    dl    = PveModule.Inbound  || PveModule.SlowInbound;
+                    ul    = PveModule.Outbound || PveModule.SlowOutbound;
+                    since = pve.StartTime;
+                }
+                else if (mi.Module is PvpModule pvp)
+                {
+                    dl    = PvpModule.Inbound;
+                    ul    = PvpModule.Outbound;
+                    since = pvp.StartTime;
+                }
+                else
+                {
+                    dl    = mi.Module.IsActivated;
+                    since = mi.Module.StartTime;
                 }
 
-                if (active && mi.Module.StartTime != DateTime.MinValue)
+                bool active = dl || ul;
+
+                mi.Icon.Fill        = active ? ActiveBrush       : InactiveBrush;
+                mi.Circle.BorderBrush = active ? ActiveRingBrush  : InactiveRingBrush;
+                mi.Circle.Background  = active ? ActiveBgBrush    : InactiveBgBrush;
+
+                // arrows — only show for PVE/PVP (bidirectional); for others just DL arrow acts as "on"
+                bool isBidirectional = mi.Module is PveModule or PvpModule;
+                mi.DlArrow.Visibility = dl ? Visibility.Visible : Visibility.Collapsed;
+                mi.UlArrow.Visibility = (isBidirectional && ul) ? Visibility.Visible : Visibility.Collapsed;
+                // add spacing between arrows when both arrows show
+                mi.DlArrow.Margin = (isBidirectional && dl && ul) ? new Thickness(0, 0, 2, 0) : new Thickness(0);
+
+                // timer
+                if (active && since != DateTime.MinValue)
                 {
-                    var elapsed = DateTime.Now - mi.Module.StartTime;
-                    var text    = FormatElapsed(elapsed);
+                    var text = FormatElapsed(DateTime.Now - since);
                     if (!string.IsNullOrEmpty(text))
                     {
                         mi.Timer.Content    = text;
+                        mi.Timer.Margin     = (dl || ul) ? new Thickness(3, 0, 0, 0) : new Thickness(0);
                         mi.Timer.Visibility = Visibility.Visible;
                     }
                     else
@@ -191,7 +267,6 @@ namespace InfinLimit.Windows
                 }
             }
 
-            // Raid count
             int raids = D2CharacterTracker.RaidsCount;
             RaidStack.Visibility = raids > 0 ? Visibility.Visible : Visibility.Collapsed;
             if (raids > 0)
