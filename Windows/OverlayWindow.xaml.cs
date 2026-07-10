@@ -34,9 +34,12 @@ namespace InfinLimit.Windows
         private record ModuleIcon(PacketModuleBase Module, Path Icon, Label Timer);
         private readonly List<ModuleIcon> _icons = new();
 
-        private static readonly Brush ActiveBrush   = new SolidColorBrush(Color.FromArgb(0xee, 0xff, 0xff, 0xff));
-        private static readonly Brush InactiveBrush = new SolidColorBrush(Color.FromArgb(0x50, 0xff, 0xff, 0xff));
-        private static readonly Brush TimerBrush    = new SolidColorBrush(Color.FromArgb(0xcc, 0xff, 0xff, 0xff));
+        private static readonly Brush ActiveBrush      = new SolidColorBrush(Color.FromArgb(0xee, 0xff, 0xff, 0xff));
+        private static readonly Brush InactiveBrush    = new SolidColorBrush(Color.FromArgb(0x55, 0xff, 0xff, 0xff));
+        private static readonly Brush ActiveRingBrush  = new SolidColorBrush(Color.FromArgb(0xaa, 0xff, 0xff, 0xff));
+        private static readonly Brush InactiveRingBrush= new SolidColorBrush(Color.FromArgb(0x35, 0xff, 0xff, 0xff));
+        private static readonly Brush ActiveBgBrush    = new SolidColorBrush(Color.FromArgb(0x28, 0xff, 0xff, 0xff));
+        private static readonly Brush InactiveBgBrush  = new SolidColorBrush(Color.FromArgb(0x10, 0xff, 0xff, 0xff));
 
         private static Process  cachedProcess       = null;
         private static bool     LastGameFocusResult = false;
@@ -100,43 +103,36 @@ namespace InfinLimit.Windows
 
                 var icon = new Path
                 {
-                    Data            = mod.Icon,
-                    Stretch         = Stretch.Uniform,
-                    Width           = 28,
-                    Height          = 28,
-                    Fill            = InactiveBrush,
+                    Data              = mod.Icon,
+                    Stretch           = Stretch.Uniform,
+                    Width             = 22,
+                    Height            = 22,
+                    Fill              = InactiveBrush,
+                    HorizontalAlignment = HorizontalAlignment.Center,
                     VerticalAlignment = VerticalAlignment.Center,
                 };
-                icon.Effect = new System.Windows.Media.Effects.DropShadowEffect
+
+                var circle = new Border
                 {
-                    ShadowDepth = 0,
-                    Color       = Colors.Black,
-                    BlurRadius  = 4,
+                    Width           = 46,
+                    Height          = 46,
+                    CornerRadius    = new CornerRadius(23),
+                    BorderBrush     = InactiveRingBrush,
+                    BorderThickness = new Thickness(1.5),
+                    Background      = InactiveBgBrush,
+                    Margin          = new Thickness(3, 0, 3, 0),
+                    Child           = icon,
+                };
+                circle.Effect = new System.Windows.Media.Effects.DropShadowEffect
+                {
+                    ShadowDepth = 0, Color = Colors.Black, BlurRadius = 6, Opacity = 0.5,
                 };
 
-                var timerLabel = new Label
-                {
-                    Content             = "",
-                    Foreground          = TimerBrush,
-                    FontFamily          = new FontFamily("Bahnschrift Light"),
-                    FontWeight          = FontWeights.Bold,
-                    FontSize            = 14,
-                    Padding             = new Thickness(0),
-                    Margin              = new Thickness(2, 0, 8, 0),
-                    VerticalContentAlignment = VerticalAlignment.Center,
-                    Visibility          = Visibility.Collapsed,
-                };
+                // timer label appears below the icon row (reuse InstanceTimerLabel area)
+                // — per-module timer shown inline via tooltip or ignored for now
+                var timerLabel = new Label { Visibility = Visibility.Collapsed };
 
-                var cell = new StackPanel
-                {
-                    Orientation       = Orientation.Horizontal,
-                    Margin            = new Thickness(6, 0, 0, 0),
-                    VerticalAlignment = VerticalAlignment.Center,
-                };
-                cell.Children.Add(icon);
-                cell.Children.Add(timerLabel);
-
-                Modules.Children.Add(cell);
+                Modules.Children.Add(circle);
                 _icons.Add(new ModuleIcon(mod, icon, timerLabel));
             }
         }
@@ -152,6 +148,13 @@ namespace InfinLimit.Windows
             {
                 bool active = mi.Module.IsActivated;
                 mi.Icon.Fill = active ? ActiveBrush : InactiveBrush;
+
+                // tint the circle ring/bg when active
+                if (mi.Icon.Parent is Border circle)
+                {
+                    circle.BorderBrush = active ? ActiveRingBrush  : InactiveRingBrush;
+                    circle.Background  = active ? ActiveBgBrush    : InactiveBgBrush;
+                }
 
                 if (active && mi.Module.StartTime != DateTime.MinValue)
                 {
