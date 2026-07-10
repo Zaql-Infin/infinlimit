@@ -1,9 +1,11 @@
-﻿using InfinLimit.Utility;
+﻿using InfinLimit.Models;
+using InfinLimit.Utility;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -26,7 +28,7 @@ namespace InfinLimit.Interception.Modules
         
         [DllImport("user32.dll")]
         static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint dwData, UIntPtr dwExtraInfo);
-        
+
         [DllImport("user32.dll")]
         static extern bool SetCursorPos(int X, int Y);
         
@@ -70,30 +72,19 @@ namespace InfinLimit.Interception.Modules
         
         #endregion
         
-        #region Settings and Configuration
-        
-        // Loadout selection settings  
-        private int damageLoadout = 1;
-        private int finalLoadoutNumber = 1; // The loadout number to end the loop on
-        private string activateModule = "None"; // Module to activate during swapping
-        private int loopDuration = 5000; // Duration to loop in milliseconds
-        
-        // Module activation settings (replacing keybind strings)
-        private bool use3074Upload = true;    // PVE Upload (3074 UL)
-        private bool use3074Download = false;  // PVE Download (3074 DL) 
-        private bool use27kUpload = false;     // PVP Upload (27k UL)
-        private bool f1AfterSwaps = false;
-        
-        // Timing settings
-        private int swapTime = 5000;           // Total swap time in ms
-        private int timeBetweenLoadouts = 30;  // Delay between loadout clicks in ms
-        
-        
-        // Keybinds for each module type
-        public static List<Keycode> Module3074ULKeybind = new List<Keycode>();
-        public static List<Keycode> Module3074DLKeybind = new List<Keycode>();
-        public static List<Keycode> Module27kULKeybind = new List<Keycode>();
-        
+        #region Profiles
+
+        public static SwapProfile[] Profiles = new SwapProfile[5]
+        {
+            new() { Name = "Profile 1", Port3074 = true },
+            new() { Name = "Profile 2", Port3074 = true },
+            new() { Name = "Profile 3", Port3074 = true },
+            new() { Name = "Profile 4", Port3074 = true },
+            new() { Name = "Profile 5", Port3074 = true },
+        };
+
+        public static int CurrentProfileIndex = 0;
+
         #endregion
 
         public SwapperModule() : base("Swapper", true)
@@ -103,62 +94,29 @@ namespace InfinLimit.Interception.Modules
 
             InitializeResolutionAndCoordinates();
             LoadSettings();
-            
-            // Initialize damage loadout coordinate
-            UpdateDamageLoadoutCoordinate(damageLoadout);
-            
-            // Set up keybind handlers
-            KeyListener.KeysPressed += Module3074ULKeybindHandler;
-            KeyListener.KeysPressed += Module3074DLKeybindHandler;
-            KeyListener.KeysPressed += Module27kULKeybindHandler;
+
+            KeyListener.KeysPressed += ProfileKeybindHandler;
         }
         
         private void LoadSettings()
         {
             var config = Config.GetNamed("Swapper");
-            
-            // Load other settings with defaults
-            damageLoadout = config.GetSettings<int>("DamageLoadout") > 0 ? config.GetSettings<int>("DamageLoadout") : 1;
-            finalLoadoutNumber = config.GetSettings<int>("FinalLoadoutNumber") > 0 ? config.GetSettings<int>("FinalLoadoutNumber") : 1;
-            loopDuration = config.GetSettings<int>("LoopDuration") > 0 ? config.GetSettings<int>("LoopDuration") : 5000;
-            
-            // Load keybinds for each module type
-            Module3074ULKeybind.Clear();
-            Module3074DLKeybind.Clear();
-            Module27kULKeybind.Clear();
-            
-            Module3074ULKeybind.AddRange(config.GetSettings<List<Keycode>>("Module3074ULKeybind") ?? new List<Keycode>());
-            Module3074DLKeybind.AddRange(config.GetSettings<List<Keycode>>("Module3074DLKeybind") ?? new List<Keycode>());
-            Module27kULKeybind.AddRange(config.GetSettings<List<Keycode>>("Module27kULKeybind") ?? new List<Keycode>());
-            
-            // Module activation settings (replacing keybind strings)
-            use3074Upload = config.GetSettings<bool>("Use3074Upload");      // Default: true from GetSettings
-            use3074Download = config.GetSettings<bool>("Use3074Download");    // Default: false 
-            use27kUpload = config.GetSettings<bool>("Use27kUpload");         // Default: false
-            f1AfterSwaps = config.GetSettings<bool>("F1AfterSwaps");        // Default: false
-            
-            // Determine activateModule based on boolean settings (for backwards compatibility)
-            activateModule = config.GetSettings<string>("ActivateModule");
-            if (string.IsNullOrEmpty(activateModule))
+            var profilesJson = config.GetSettings<string>("Profiles");
+            if (!string.IsNullOrEmpty(profilesJson))
             {
-                // If no explicit ActivateModule setting, determine from boolean settings
-                if (use3074Upload)
-                    activateModule = "3074 UL";
-                else if (use3074Download)
-                    activateModule = "3074 DL";
-                else if (use27kUpload)
-                    activateModule = "27k UL";
-                else
-                    activateModule = "None";
+                try
+                {
+                    var loaded = JsonSerializer.Deserialize<SwapProfile[]>(profilesJson);
+                    if (loaded != null)
+                        for (int i = 0; i < Math.Min(5, loaded.Length); i++)
+                            if (loaded[i] != null) Profiles[i] = loaded[i];
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warning($"Swapper: Profile load failed: {ex.Message}");
+                }
             }
-            
-            // Timing settings
-            swapTime = config.GetSettings<int>("SwapTimeOverall") > 0 ? config.GetSettings<int>("SwapTimeOverall") : 5000;
-            timeBetweenLoadouts = config.GetSettings<int>("DelayBetweenLoadouts") > 0 ? config.GetSettings<int>("DelayBetweenLoadouts") : 30;
-            
-            // Load selected loadouts from config
-            var selectedLoadoutsList = GetSelectedLoadouts();
-            Logger.Info($"Swapper: Loaded settings - Selected Loadouts: [{string.Join(", ", selectedLoadoutsList.OrderBy(x => x))}], Damage Loadout: {damageLoadout}, Final Loadout: {finalLoadoutNumber}, Activate Module: {activateModule}, Duration: {loopDuration}ms, 3074UL: {use3074Upload}, 3074DL: {use3074Download}, 27kUL: {use27kUpload}");
+            Logger.Info("Swapper: Profiles loaded");
         }
         
         #region Resolution and Coordinate Management Methods
@@ -193,78 +151,39 @@ namespace InfinLimit.Interception.Modules
         }
         
 
-        /// Sets coordinates for 1920x1080 resolution (from AHK script)
+        // 1920x1080 base loadout X/Y positions (4-column grid, 5 rows = 20 loadouts)
+        private static readonly int[] Base1080X = { 119, 212, 306, 400, 119, 212, 306, 400, 119, 212, 306, 400, 119, 212, 306, 400, 119, 212, 306, 400 };
+        private static readonly int[] Base1080Y = { 387, 387, 387, 387, 481, 481, 481, 481, 575, 575, 575, 575, 668, 668, 668, 668, 762, 762, 762, 762 };
 
         private void Set1920x1080Coordinates()
         {
-            coordinates["load1"] = (140, 340);
-            coordinates["load2"] = (240, 340);
-            coordinates["load3"] = (140, 440);
-            coordinates["load4"] = (240, 440);
-            coordinates["load5"] = (140, 530);
-            coordinates["load6"] = (240, 530);
-            coordinates["load7"] = (140, 630);
-            coordinates["load8"] = (240, 630);
-            coordinates["load9"] = (140, 730);
-            coordinates["load10"] = (240, 730);
-            coordinates["load11"] = (140, 830);
-            coordinates["load12"] = (240, 830);
-            
-            loadColorCoord = (107, 1044);
+            for (int i = 0; i < 20; i++)
+                coordinates[$"load{i + 1}"] = (Base1080X[i], Base1080Y[i]);
+            loadColorCoord = (77, 104);
             invColorCoord = (960, 1035);
             invColor2Coord = (960, 1014);
         }
-        
-
-        /// Sets coordinates for 2560x1440 resolution (from AHK script)
 
         private void Set2560x1440Coordinates()
         {
-            coordinates["load1"] = (190, 450);
-            coordinates["load2"] = (320, 450);
-            coordinates["load3"] = (190, 570);
-            coordinates["load4"] = (320, 570);
-            coordinates["load5"] = (190, 690);
-            coordinates["load6"] = (320, 690);
-            coordinates["load7"] = (190, 810);
-            coordinates["load8"] = (320, 810);
-            coordinates["load9"] = (190, 950);
-            coordinates["load10"] = (320, 950);
-            coordinates["load11"] = (190, 1070);
-            coordinates["load12"] = (320, 1070);
-            
-            loadColorCoord = (143, 1386);
+            for (int i = 0; i < 20; i++)
+                coordinates[$"load{i + 1}"] = ((int)(Base1080X[i] * (1440.0 / 1080.0)), (int)(Base1080Y[i] * (1440.0 / 1080.0)));
+            loadColorCoord = (102, 139);
             invColorCoord = (1280, 1380);
             invColor2Coord = (1280, 1351);
         }
-        
-
-        /// Sets scaled coordinates for unsupported resolutions (from AHK script logic)
 
         private void SetScaledCoordinates()
         {
-            // Calculate scaling factors based on AHK script logic
             hwMultiplier = (double)screenHeight / 1080.0;
             wOffset = (screenWidth - 1920.0 * hwMultiplier) / 2;
-            
+
             Logger.Info($"Swapper: Scaling - hwMultiplier: {hwMultiplier:F3}, wOffset: {wOffset:F1}");
-            
-            // Scale all loadout coordinates
-            coordinates["load1"] = (ScaleX(140), ScaleY(340));
-            coordinates["load2"] = (ScaleX(240), ScaleY(340));
-            coordinates["load3"] = (ScaleX(140), ScaleY(440));
-            coordinates["load4"] = (ScaleX(240), ScaleY(440));
-            coordinates["load5"] = (ScaleX(140), ScaleY(530));
-            coordinates["load6"] = (ScaleX(240), ScaleY(530));
-            coordinates["load7"] = (ScaleX(140), ScaleY(630));
-            coordinates["load8"] = (ScaleX(240), ScaleY(630));
-            coordinates["load9"] = (ScaleX(140), ScaleY(730));
-            coordinates["load10"] = (ScaleX(240), ScaleY(730));
-            coordinates["load11"] = (ScaleX(140), ScaleY(830));
-            coordinates["load12"] = (ScaleX(240), ScaleY(830));
-            
-            // Scale UI element coordinates
-            loadColorCoord = (ScaleX(107), ScaleY(1044));
+
+            for (int i = 0; i < 20; i++)
+                coordinates[$"load{i + 1}"] = (ScaleX(Base1080X[i]), ScaleY(Base1080Y[i]));
+
+            loadColorCoord = (ScaleX(77), ScaleY(104));
             invColorCoord = (ScaleX(960), ScaleY(1035));
             invColor2Coord = (ScaleX(960), ScaleY(1014));
         }
@@ -290,21 +209,18 @@ namespace InfinLimit.Interception.Modules
 
         public (int x, int y) GetLoadoutCoordinate(int loadoutNumber)
         {
-            if (loadoutNumber < 1 || loadoutNumber > 12)
+            if (loadoutNumber < 1 || loadoutNumber > 20)
             {
                 Logger.Warning($"Swapper: Invalid loadout number {loadoutNumber}, using loadout 1");
                 return coordinates["load1"];
             }
-            
+
             return coordinates[$"load{loadoutNumber}"];
         }
-        
-
-        /// Updates the damage loadout coordinate when the setting changes
 
         public void UpdateDamageLoadoutCoordinate(int loadoutNumber)
         {
-            if (loadoutNumber >= 1 && loadoutNumber <= 12)
+            if (loadoutNumber >= 1 && loadoutNumber <= 20)
             {
                 loadDualCoord = GetLoadoutCoordinate(loadoutNumber);
                 Logger.Info($"Swapper: Set damage loadout to {loadoutNumber} at coordinates ({loadDualCoord.x}, {loadDualCoord.y})");
@@ -317,7 +233,7 @@ namespace InfinLimit.Interception.Modules
         public void LogAllCoordinates()
         {
             Logger.Info($"Swapper Coordinates (Resolution: {screenWidth}x{screenHeight}):");
-            for (int i = 1; i <= 12; i++)
+            for (int i = 1; i <= 20; i++)
             {
                 var coord = coordinates[$"load{i}"];
                 Logger.Info($"  Loadout {i}: ({coord.x}, {coord.y})");
@@ -615,61 +531,46 @@ namespace InfinLimit.Interception.Modules
         /// <param name="loadoutNumbers">List of loadout numbers to alternate through</param>
         /// <param name="intervalMs">Interval between clicks in milliseconds</param>
         /// <param name="durationMs">Total duration to click in milliseconds</param>
-        public void AlternateClickThroughLoadouts(List<int> loadoutNumbers, int intervalMs, int durationMs)
+        public void AlternateClickThroughLoadouts(List<int> loadoutNumbers, int delayPerClickMs, int durationMs)
         {
             if (!loadoutNumbers.Any())
             {
                 Logger.Warning("Swapper: No loadouts provided for alternating clicks");
                 return;
             }
-            
-            Logger.Info($"Swapper: Starting alternating clicks through {loadoutNumbers.Count} loadouts every {intervalMs}ms for {durationMs}ms");
-            Logger.Info($"Swapper: Loadout sequence: [{string.Join(", ", loadoutNumbers)}]");
-            
-            long startTime = GetPreciseTimestamp();
-            long endTime = startTime + durationMs;
-            int clickCount = 0;
-            int currentLoadoutIndex = 0;
-            
-            // Pre-calculate all coordinates to avoid repeated lookups
-            var loadoutCoords = loadoutNumbers.Select(num => new { LoadoutNum = num, Coord = GetLoadoutCoordinate(num) }).ToArray();
-            
-            while (GetPreciseTimestamp() < endTime && IsActivated)
+
+            // The delay sits BEFORE the click so the game always has at least this many ms
+            // to see the cursor at the new position before the click fires.
+            // 16 ms = one frame at 60 fps. Raise SwapDelay in the UI for lower FPS.
+            int safeDelay = Math.Max(delayPerClickMs, 16);
+
+            Logger.Info($"Swapper: Alternating clicks — {loadoutNumbers.Count} loadouts, {safeDelay}ms pre-click, {durationMs}ms total");
+
+            var coords = loadoutNumbers.Select(n => GetLoadoutCoordinate(n)).ToArray();
+            long start = GetPreciseTimestamp();
+            int idx = 0, clicks = 0;
+
+            while (GetPreciseTimestamp() - start < durationMs && IsActivated)
             {
-                long clickStartTime = GetPreciseTimestamp();
-                
-                // Get the current loadout to click
-                var currentLoadout = loadoutCoords[currentLoadoutIndex];
-                
-                // Move to the loadout position and click
-                MouseMove(currentLoadout.Coord.x, currentLoadout.Coord.y);
-                PreciseSleep(2); // Very small delay for mouse positioning
-                MouseClick();
-                clickCount++;
-                
-                Logger.Debug($"Swapper: Click #{clickCount} at loadout {currentLoadout.LoadoutNum} ({currentLoadout.Coord.x}, {currentLoadout.Coord.y})");
-                
-                // Move to the next loadout in the cycle
-                currentLoadoutIndex = (currentLoadoutIndex + 1) % loadoutNumbers.Count;
-                
-                // Calculate remaining time for this interval
-                long clickEndTime = GetPreciseTimestamp();
-                long clickDuration = clickEndTime - clickStartTime;
-                long remainingInterval = intervalMs - clickDuration;
-                
-                // Sleep for the remaining interval time (ensuring we don't go negative)
-                if (remainingInterval > 0)
-                {
-                    PreciseSleep((int)remainingInterval);
-                }
+                var (x, y) = coords[idx];
+
+                // Move cursor to the target loadout position.
+                SetCursorPos(x, y);
+
+                // Wait the full configured delay so the game registers the new cursor
+                // position before the click arrives — this is the FPS-independence fix.
+                PreciseSleep(safeDelay);
+
+                // Fire the click at the current cursor position.
+                mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, UIntPtr.Zero);
+                mouse_event(MOUSEEVENTF_LEFTUP,   0, 0, 0, UIntPtr.Zero);
+                clicks++;
+
+                Logger.Debug($"Swapper: Click #{clicks} loadout {loadoutNumbers[idx]} ({x},{y})");
+                idx = (idx + 1) % coords.Length;
             }
-            
-            long totalTime = GetPreciseTimestamp() - startTime;
-            int cyclesCompleted = clickCount / loadoutNumbers.Count;
-            int partialCycleClicks = clickCount % loadoutNumbers.Count;
-            
-            Logger.Info($"Swapper: Completed alternating clicks - {clickCount} total clicks in {totalTime}ms (avg {(double)totalTime / clickCount:F1}ms per click)");
-            Logger.Info($"Swapper: Completed {cyclesCompleted} full cycles through all loadouts + {partialCycleClicks} additional clicks");
+
+            Logger.Info($"Swapper: Done — {clicks} clicks in {GetPreciseTimestamp() - start}ms");
         }
         
         /// <summary>
@@ -756,554 +657,175 @@ namespace InfinLimit.Interception.Modules
             Logger.Warning($"Swapper: Color 0x{expectedColor:X6} not found at ({x}, {y}) within {timeoutMs}ms timeout");
             return false;
         }
-        
-        
-        
+        private bool IsPixelBright(int x, int y)
+        {
+            uint color = GetPixelColor(x, y);
+            byte r = (byte)(color & 0xFF);
+            byte g = (byte)((color >> 8) & 0xFF);
+            byte b = (byte)((color >> 16) & 0xFF);
+            return r >= 208 && g >= 208 && b >= 208;
+        }
+
+        // Opens D2 inventory and navigates to the loadout screen using pixel detection.
+        // Mirrors DarkLimiter's OpenLoadouts(): presses F1, then LEFT arrow up to 27 times
+        // until the loadout color pixel turns bright (loadout tab is active).
+        private void OpenInventory()
+        {
+            SendKey(Keys.F1);
+            Thread.Sleep(200);
+
+            for (int i = 0; i < 27; i++)
+            {
+                Thread.Sleep(1);
+                SetCursorPos(10, screenHeight / 2);
+                SendKey(Keys.Left);
+                if (IsPixelBright(loadColorCoord.x, loadColorCoord.y))
+                    break;
+            }
+
+            // Wait up to 500ms for the loadout panel to fully appear
+            var deadline = DateTime.UtcNow.AddMilliseconds(500);
+            while (!IsPixelBright(loadColorCoord.x, loadColorCoord.y) && DateTime.UtcNow < deadline)
+                Thread.Sleep(5);
+        }
+
         #endregion
 
-        #region Public Methods for UI Integration
-        
+        #region Execution
 
-        /// Sets the selection state for a specific loadout number
-        public void SetLoadoutSelection(int loadoutNumber, bool isSelected)
-        {
-            if (loadoutNumber < 1 || loadoutNumber > 12)
-                return;
-                
-            var swapperSettings = Config.GetNamed("Swapper");
-            var selectedLoadouts = swapperSettings.GetSettings<List<int>>("SelectedLoadouts") ?? new List<int>();
-            
-            if (isSelected && !selectedLoadouts.Contains(loadoutNumber))
-            {
-                selectedLoadouts.Add(loadoutNumber);
-                Logger.Debug($"SwapperModule: Added loadout {loadoutNumber} to selection");
-            }
-            else if (!isSelected && selectedLoadouts.Contains(loadoutNumber))
-            {
-                selectedLoadouts.Remove(loadoutNumber);
-                Logger.Debug($"SwapperModule: Removed loadout {loadoutNumber} from selection");
-            }
-            
-            // Save the updated list back to settings
-            swapperSettings.Settings["SelectedLoadouts"] = selectedLoadouts;
-            Config.Save();
-        }
-        
-
-        /// Gets the current selected loadouts from config
-        public List<int> GetSelectedLoadouts()
-        {
-            var swapperSettings = Config.GetNamed("Swapper");
-            return swapperSettings.GetSettings<List<int>>("SelectedLoadouts") ?? new List<int>();
-        }
-        
-        /// Sets the final loadout number that the loop should end on
-        public void SetFinalLoadout(int loadoutNumber)
-        {
-            if (loadoutNumber >= 1 && loadoutNumber <= 12)
-            {
-                finalLoadoutNumber = loadoutNumber;
-                var swapperConfig = Config.GetNamed("Swapper");
-                swapperConfig.Settings["FinalLoadoutNumber"] = loadoutNumber;
-                Config.Save();
-                Logger.Info($"Swapper: Final loadout set to {loadoutNumber}");
-            }
-            else
-            {
-                Logger.Warning($"Swapper: Invalid final loadout number {loadoutNumber}. Must be between 1-12.");
-            }
-        }
-        
-        /// Gets the current final loadout number
-        public int GetFinalLoadout()
-        {
-            return finalLoadoutNumber;
-        }
-        
-        /// Sets the module to activate during swapping
-        public void SetActivateModule(string moduleName)
-        {
-            if (!string.IsNullOrEmpty(moduleName))
-            {
-                activateModule = moduleName;
-                var swapperConfig = Config.GetNamed("Swapper");
-                swapperConfig.Settings["ActivateModule"] = moduleName;
-                
-                // Update the corresponding boolean settings based on the module name
-                // Reset all to false first
-                swapperConfig.Settings["Use3074Upload"] = false;
-                swapperConfig.Settings["Use3074Download"] = false;
-                swapperConfig.Settings["Use27kUpload"] = false;
-                
-                // Set the appropriate boolean based on selection
-                switch (moduleName)
-                {
-                    case "3074 UL":
-                        swapperConfig.Settings["Use3074Upload"] = true;
-                        use3074Upload = true;
-                        use3074Download = false;
-                        use27kUpload = false;
-                        break;
-                    case "3074 DL":
-                        swapperConfig.Settings["Use3074Download"] = true;
-                        use3074Upload = false;
-                        use3074Download = true;
-                        use27kUpload = false;
-                        break;
-                    case "27k UL":
-                        swapperConfig.Settings["Use27kUpload"] = true;
-                        use3074Upload = false;
-                        use3074Download = false;
-                        use27kUpload = true;
-                        break;
-                    case "None":
-                    default:
-                        // All remain false (already set above)
-                        use3074Upload = false;
-                        use3074Download = false;
-                        use27kUpload = false;
-                        break;
-                }
-                
-                Config.Save();
-                Logger.Info($"Swapper: Activate module set to {moduleName} (3074UL: {use3074Upload}, 3074DL: {use3074Download}, 27kUL: {use27kUpload})");
-            }
-        }
-        
-        /// Gets the current activate module
-        public string GetActivateModule()
-        {
-            return activateModule;
-        }
-        
-        /// Sets the loop duration in milliseconds
-        public void SetLoopDuration(int duration)
-        {
-            if (duration > 0)
-            {
-                loopDuration = duration;
-                var swapperConfig = Config.GetNamed("Swapper");
-                swapperConfig.Settings["LoopDuration"] = duration;
-                Config.Save();
-                Logger.Info($"Swapper: Loop duration set to {duration}ms");
-            }
-            else
-            {
-                Logger.Warning($"Swapper: Invalid loop duration {duration}. Must be greater than 0.");
-            }
-        }
-        
-        /// Gets the current loop duration
-        public int GetLoopDuration()
-        {
-            return loopDuration;
-        }
-        
-        /// Sets the damage loadout number
-        public void SetDamageLoadout(int loadoutNumber)
-        {
-            if (loadoutNumber >= 1 && loadoutNumber <= 12)
-            {
-                damageLoadout = loadoutNumber;
-                UpdateDamageLoadoutCoordinate(loadoutNumber);
-                var swapperConfig = Config.GetNamed("Swapper");
-                swapperConfig.Settings["DamageLoadout"] = loadoutNumber;
-                Config.Save();
-                Logger.Info($"Swapper: Damage loadout set to {loadoutNumber}");
-            }
-            else
-            {
-                Logger.Warning($"Swapper: Invalid damage loadout number {loadoutNumber}. Must be between 1-12.");
-            }
-        }
-        
-        /// Gets the current damage loadout number
-        public int GetDamageLoadout()
-        {
-            return damageLoadout;
-        }
-        
-        /// Sets the F1 after swaps setting
-        public void SetF1AfterSwaps(bool enabled)
-        {
-            f1AfterSwaps = enabled;
-            var swapperConfig = Config.GetNamed("Swapper");
-            swapperConfig.Settings["F1AfterSwaps"] = enabled;
-            Config.Save();
-            Logger.Info($"Swapper: F1 after swaps set to {enabled}");
-        }
-        
-        /// Gets the F1 after swaps setting
-        public bool GetF1AfterSwaps()
-        {
-            return f1AfterSwaps;
-        }
-        
-        /// Sets the overall swap time in milliseconds
-        public void SetSwapTime(int timeMs)
-        {
-            if (timeMs > 0)
-            {
-                swapTime = timeMs;
-                var swapperConfig = Config.GetNamed("Swapper");
-                swapperConfig.Settings["SwapTimeOverall"] = timeMs;
-                Config.Save();
-                Logger.Info($"Swapper: Overall swap time set to {timeMs}ms");
-            }
-            else
-            {
-                Logger.Warning($"Swapper: Invalid swap time {timeMs}. Must be greater than 0.");
-            }
-        }
-        
-        /// Gets the overall swap time
-        public int GetSwapTime()
-        {
-            return swapTime;
-        }
-        
-        
-        
-        /// Sets the time between loadouts in milliseconds
-        public void SetTimeBetweenLoadouts(int timeMs)
-        {
-            if (timeMs > 0)
-            {
-                timeBetweenLoadouts = timeMs;
-                var swapperConfig = Config.GetNamed("Swapper");
-                swapperConfig.Settings["DelayBetweenLoadouts"] = timeMs;
-                Config.Save();
-                Logger.Info($"Swapper: Time between loadouts set to {timeMs}ms");
-            }
-            else
-            {
-                Logger.Warning($"Swapper: Invalid time between loadouts {timeMs}. Must be greater than 0.");
-            }
-        }
-        
-        /// Gets the time between loadouts
-        public int GetTimeBetweenLoadouts()
-        {
-            return timeBetweenLoadouts;
-        }
-        
-        /// Gets the Use3074Upload setting
-        public bool GetUse3074Upload()
-        {
-            return use3074Upload;
-        }
-        
-        /// Gets the Use3074Download setting
-        public bool GetUse3074Download()
-        {
-            return use3074Download;
-        }
-        
-        /// Gets the Use27kUpload setting
-        public bool GetUse27kUpload()
-        {
-            return use27kUpload;
-        }
-        
-        /// Sets the keybind for 3074 UL module
-        public void SetModule3074ULKeybind(List<Keycode> keybind)
-        {
-            Module3074ULKeybind.Clear();
-            Module3074ULKeybind.AddRange(keybind);
-            var swapperConfig = Config.GetNamed("Swapper");
-            swapperConfig.Settings["Module3074ULKeybind"] = keybind;
-            Config.Save();
-            Logger.Info($"Swapper: 3074 UL keybind set");
-        }
-        
-        /// Sets the keybind for 3074 DL module
-        public void SetModule3074DLKeybind(List<Keycode> keybind)
-        {
-            Module3074DLKeybind.Clear();
-            Module3074DLKeybind.AddRange(keybind);
-            var swapperConfig = Config.GetNamed("Swapper");
-            swapperConfig.Settings["Module3074DLKeybind"] = keybind;
-            Config.Save();
-            Logger.Info($"Swapper: 3074 DL keybind set");
-        }
-        
-        /// Sets the keybind for 27k UL module
-        public void SetModule27kULKeybind(List<Keycode> keybind)
-        {
-            Module27kULKeybind.Clear();
-            Module27kULKeybind.AddRange(keybind);
-            var swapperConfig = Config.GetNamed("Swapper");
-            swapperConfig.Settings["Module27kULKeybind"] = keybind;
-            Config.Save();
-            Logger.Info($"Swapper: 27k UL keybind set");
-        }
-        
-        #endregion
-        
         public override void Toggle()
         {
-            if (IsActivated)
-            {
-                IsActivated = false;
-                Logger.Info("Swapper: Deactivated");
-                return;
-            }
-            
+            if (IsActivated) return;
+            TriggerProfile(CurrentProfileIndex);
+        }
+
+        public void TriggerProfile(int idx)
+        {
+            if (idx < 0 || idx >= 5 || IsActivated) return;
             IsActivated = true;
-            Logger.Info("Swapper: Starting loadout swap sequence with module integration");
-            
-            // Execute the swap sequence asynchronously
+            Logger.Info($"Swapper: Triggering profile {idx + 1}: {Profiles[idx].Name}");
             Task.Run(async () =>
             {
-                try
-                {
-                    await ExecuteSwapSequenceWithModules();
-                    IsActivated = false;
-                }
-                catch (Exception ex)
-                {
-                    IsActivated = false;
-                    Logger.Error(ex, additionalInfo: "Swapper execution error");
-                }
+                try { await ExecuteSwapSequenceWithModules(Profiles[idx]); }
+                catch (Exception ex) { Logger.Error(ex, additionalInfo: "Swapper execution error"); }
+                finally { IsActivated = false; }
             });
         }
-        
 
-        /// Executes the full loadout swap sequence with proper module integration
-        private async Task ExecuteSwapSequenceWithModules()
+        private void ActivateModules(SwapProfile p)
         {
-            Logger.Info("Swapper: Starting enhanced loadout swap sequence with module integration");
-            long sequenceStartTime = GetPreciseTimestamp();
-            
-            var selectedLoadouts = GetSelectedLoadouts();
+            if (p.Port3074) (InterceptionManager.GetModule("PVE") as PveModule)?.ToggleSwitch(ref PveModule.Outbound, true);
+            if (p.Packet3074DL) (InterceptionManager.GetModule("PVE") as PveModule)?.ToggleSwitch(ref PveModule.Inbound, true);
+            if (p.Port27k) (InterceptionManager.GetModule("PVP") as PvpModule)?.ToggleSwitch(ref PvpModule.Outbound, true);
+        }
+
+        private void DeactivateModules(SwapProfile p)
+        {
+            if (p.Port3074) (InterceptionManager.GetModule("PVE") as PveModule)?.ToggleSwitch(ref PveModule.Outbound, false);
+            if (p.Packet3074DL) (InterceptionManager.GetModule("PVE") as PveModule)?.ToggleSwitch(ref PveModule.Inbound, false);
+            if (p.Port27k) (InterceptionManager.GetModule("PVP") as PvpModule)?.ToggleSwitch(ref PvpModule.Outbound, false);
+        }
+
+        private async Task ExecuteSwapSequenceWithModules(SwapProfile profile)
+        {
+            Logger.Info($"Swapper: Starting sequence for '{profile.Name}'");
+            long start = GetPreciseTimestamp();
+
+            var selectedLoadouts = profile.LoadoutEnabled
+                .Select((on, i) => on ? i + 1 : 0)
+                .Where(n => n > 0)
+                .ToList();
+
             if (!selectedLoadouts.Any())
             {
-                Logger.Warning("Swapper: No loadouts selected for swapping");
+                Logger.Warning("Swapper: No loadouts selected");
                 return;
             }
-            
-            Logger.Info($"Swapper: Configuration - Selected loadouts: [{string.Join(", ", selectedLoadouts.OrderBy(x => x))}], Final loadout: {finalLoadoutNumber}, Duration: {loopDuration}ms, Interval: {timeBetweenLoadouts}ms, Module: {activateModule}");
-            
-            // Step 1: Initial module activation based on current settings
-            ActivateSelectedModule();
-            
-            // Step 2: Perform rapid clicking alternating through all selected loadouts
-            int totalClicks = 0;
-            
-            // Perform alternating clicks through all selected loadouts for the total duration
-            await Task.Run(() => AlternateClickThroughLoadouts(selectedLoadouts, timeBetweenLoadouts, loopDuration));
-            
-            // Calculate approximate total clicks for logging
-            totalClicks = loopDuration / timeBetweenLoadouts;
-            
-            // Step 3: Cleanup - deactivate modules and end on final loadout
-            await FinalizeSwapSequence();
-            
-            long totalTime = GetPreciseTimestamp() - sequenceStartTime;
-            Logger.Info($"Swapper: Complete sequence finished - ~{totalClicks} total clicks in {totalTime}ms");
-        }
-        
-        /// <summary>
-        /// Activates the selected module based on current settings
-        /// </summary>
-        private void ActivateSelectedModule()
-        {
-            if (activateModule == "None")
+
+            bool savedBuffer = false;
+            if (profile.AutoDisableBuffering && PveModule.Buffer)
             {
-                Logger.Info("Swapper: No module activation selected");
-                return;
+                savedBuffer = true;
+                PveModule.Buffer = false;
+                Logger.Info("Swapper: Auto-disabled PVE buffering");
             }
-            
-            Logger.Info($"Swapper: Activating module: {activateModule}");
-            
-            switch (activateModule)
-            {
-                case "3074 UL": // PVE Upload
-                    var pveModuleUL = InterceptionManager.GetModule("PVE") as PveModule;
-                    if (pveModuleUL != null)
-                    {
-                        pveModuleUL.ToggleSwitch(ref PveModule.Outbound, true);
-                        Logger.Info("Swapper: Activated PVE Upload (3074 UL)");
-                    }
-                    break;
-                    
-                case "3074 DL": // PVE Download  
-                    var pveModuleDL = InterceptionManager.GetModule("PVE") as PveModule;
-                    if (pveModuleDL != null)
-                    {
-                        pveModuleDL.ToggleSwitch(ref PveModule.Inbound, true);
-                        Logger.Info("Swapper: Activated PVE Download (3074 DL)");
-                    }
-                    break;
-                    
-                case "27k UL": // PVP Upload
-                    var pvpModule = InterceptionManager.GetModule("PVP") as PvpModule;
-                    if (pvpModule != null)
-                    {
-                        pvpModule.ToggleSwitch(ref PvpModule.Outbound, true);
-                        Logger.Info("Swapper: Activated PVP Upload (27k UL)");
-                    }
-                    break;
-                    
-                default:
-                    Logger.Warning($"Swapper: Unknown module activation: {activateModule}");
-                    break;
-            }
-        }
-        
-        
-        
-        /// <summary>
-        /// Finalizes the swap sequence by deactivating modules and clicking final loadout
-        /// </summary>
-        private async Task FinalizeSwapSequence()
-        {
-            Logger.Info("Swapper: Finalizing swap sequence");
-            
-            // Move to final loadout position
-            if (finalLoadoutNumber >= 1 && finalLoadoutNumber <= 12)
-            {
-                var finalCoord = GetLoadoutCoordinate(finalLoadoutNumber);
-                MouseMove(finalCoord.x, finalCoord.y);
-                Logger.Info($"Swapper: Moving to final loadout {finalLoadoutNumber} at ({finalCoord.x}, {finalCoord.y})");
-            }
-            
-            // Deactivate modules first (before rapid clicking)
-            DeactivateSelectedModule();
-            
-            // Wait 300ms before rapid clicking (matches AHK line 580)
-            PreciseSleep(300);
-            
-            // Perform the rapid clicking sequence that matches the AHK script (lines 581-592)
-            MouseClick(); // First click
-            PreciseSleep(60);
-            MouseClick();
-            PreciseSleep(50);
-            MouseClick();
-            PreciseSleep(40);
-            MouseClick();
-            PreciseSleep(30);
-            MouseClick();
-            PreciseSleep(20);
-            MouseClick();
-            PreciseSleep(10);
-            // Final click (no delay after)
-            
-            Logger.Info("Swapper: Completed rapid final click sequence");
-            
-            // Optional F1 key press if enabled
-            if (f1AfterSwaps)
-            {
+
+            ActivateModules(profile);
+
+            var fg = InterceptionManager.GetModule("Full Game") as FullGameModule;
+            if (profile.FullGame && fg != null && !fg.IsActivated)
+                fg.ForceEnable();
+
+            if (profile.OpenInventory)
+                await Task.Run(() => OpenInventory());
+
+            if (profile.SwapDelay > 0)
+                await Task.Delay(profile.SwapDelay);
+
+            await Task.Run(() => AlternateClickThroughLoadouts(selectedLoadouts, profile.SwapDelay, profile.SwapDuration));
+
+            await FinalizeSwapSequence(profile);
+
+            if (profile.CloseInventory)
                 SendKey(Keys.F1);
-                Logger.Debug("Swapper: Sent F1 key after swap completion");
+
+            if (profile.UntickDelay > 0)
+                await Task.Delay(profile.UntickDelay);
+
+            if (savedBuffer)
+            {
+                PveModule.Buffer = true;
+                Logger.Info("Swapper: Restored PVE buffering");
             }
+
+            if (profile.FullGame && fg != null && fg.IsActivated)
+                fg.ForceDisable();
+
+            Logger.Info($"Swapper: Sequence complete in {GetPreciseTimestamp() - start}ms");
         }
-        
-        /// <summary>
-        /// Deactivates the currently selected module
-        /// </summary>
-        private void DeactivateSelectedModule()
+
+        private async Task FinalizeSwapSequence(SwapProfile profile)
         {
-            if (activateModule == "None")
-            {
-                return;
-            }
-            
-            Logger.Info($"Swapper: Deactivating module: {activateModule}");
-            
-            switch (activateModule)
-            {
-                case "3074 UL": // PVE Upload
-                    var pveModuleUL = InterceptionManager.GetModule("PVE") as PveModule;
-                    if (pveModuleUL != null)
-                    {
-                        pveModuleUL.ToggleSwitch(ref PveModule.Outbound, false);
-                        Logger.Info("Swapper: Deactivated PVE Upload (3074 UL)");
-                    }
-                    break;
-                    
-                case "3074 DL": // PVE Download  
-                    var pveModuleDL = InterceptionManager.GetModule("PVE") as PveModule;
-                    if (pveModuleDL != null)
-                    {
-                        pveModuleDL.ToggleSwitch(ref PveModule.Inbound, false);
-                        Logger.Info("Swapper: Deactivated PVE Download (3074 DL)");
-                    }
-                    break;
-                    
-                case "27k UL": // PVP Upload
-                    var pvpModule = InterceptionManager.GetModule("PVP") as PvpModule;
-                    if (pvpModule != null)
-                    {
-                        pvpModule.ToggleSwitch(ref PvpModule.Outbound, false);
-                        Logger.Info("Swapper: Deactivated PVP Upload (27k UL)");
-                    }
-                    break;
-            }
+            var (fx, fy) = GetLoadoutCoordinate(profile.EndingLoadout);
+            SetCursorPos(fx, fy);
+
+            DeactivateModules(profile);
+
+            PreciseSleep(300);
+
+            // Rapid-fire clicks to confirm the ending loadout.
+            // Cursor is already positioned; each click is just down+up.
+            mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, UIntPtr.Zero);
+            mouse_event(MOUSEEVENTF_LEFTUP,   0, 0, 0, UIntPtr.Zero); PreciseSleep(60);
+            mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, UIntPtr.Zero);
+            mouse_event(MOUSEEVENTF_LEFTUP,   0, 0, 0, UIntPtr.Zero); PreciseSleep(50);
+            mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, UIntPtr.Zero);
+            mouse_event(MOUSEEVENTF_LEFTUP,   0, 0, 0, UIntPtr.Zero); PreciseSleep(40);
+            mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, UIntPtr.Zero);
+            mouse_event(MOUSEEVENTF_LEFTUP,   0, 0, 0, UIntPtr.Zero); PreciseSleep(30);
+            mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, UIntPtr.Zero);
+            mouse_event(MOUSEEVENTF_LEFTUP,   0, 0, 0, UIntPtr.Zero); PreciseSleep(20);
+            mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, UIntPtr.Zero);
+            mouse_event(MOUSEEVENTF_LEFTUP,   0, 0, 0, UIntPtr.Zero); PreciseSleep(10);
+
+            Logger.Info($"Swapper: Final rapid-click done at loadout {profile.EndingLoadout} ({fx},{fy})");
         }
-        
-        #region Keybind Handler Methods
-        
-        /// <summary>
-        /// Handler for 3074 UL (PVE Upload) keybind - activates swapper with PVE Upload
-        /// </summary>
-        private void Module3074ULKeybindHandler(LinkedList<Keycode> keycodes)
+
+        private void ProfileKeybindHandler(LinkedList<Keycode> keycodes)
         {
-            // Skip KeybindChecks() for swapper - we want one-shot triggers, not hold-to-activate
-            if (!Module3074ULKeybind.Any() || keycodes.Count < Module3074ULKeybind.Count) return;
-            
-            if (Module3074ULKeybind.All(x => keycodes.Contains(x)))
+            if (IsActivated) return;
+            for (int i = 0; i < 5; i++)
             {
-                // Only trigger if not already running
-                if (!IsActivated)
+                var kb = Profiles[i].Keybind;
+                if (kb.Count > 0 && keycodes.Count >= kb.Count && kb.All(x => keycodes.Contains(x)))
                 {
-                    Logger.Info("Swapper: 3074 UL keybind pressed - starting swapper with PVE Upload");
-                    SetActivateModule("3074 UL");
-                    Toggle(); // Start the swapper
+                    TriggerProfile(i);
+                    return;
                 }
             }
         }
-        
-        /// <summary>
-        /// Handler for 3074 DL (PVE Download) keybind - activates swapper with PVE Download
-        /// </summary>
-        private void Module3074DLKeybindHandler(LinkedList<Keycode> keycodes)
-        {
-            // Skip KeybindChecks() for swapper - we want one-shot triggers, not hold-to-activate
-            if (!Module3074DLKeybind.Any() || keycodes.Count < Module3074DLKeybind.Count) return;
-            
-            if (Module3074DLKeybind.All(x => keycodes.Contains(x)))
-            {
-                // Only trigger if not already running
-                if (!IsActivated)
-                {
-                    Logger.Info("Swapper: 3074 DL keybind pressed - starting swapper with PVE Download");
-                    SetActivateModule("3074 DL");
-                    Toggle(); // Start the swapper
-                }
-            }
-        }
-        
-        /// <summary>
-        /// Handler for 27k UL (PVP Upload) keybind - activates swapper with PVP Upload
-        /// </summary>
-        private void Module27kULKeybindHandler(LinkedList<Keycode> keycodes)
-        {
-            // Skip KeybindChecks() for swapper - we want one-shot triggers, not hold-to-activate
-            if (!Module27kULKeybind.Any() || keycodes.Count < Module27kULKeybind.Count) return;
-            
-            if (Module27kULKeybind.All(x => keycodes.Contains(x)))
-            {
-                // Only trigger if not already running
-                if (!IsActivated)
-                {
-                    Logger.Info("Swapper: 27k UL keybind pressed - starting swapper with PVP Upload");
-                    SetActivateModule("27k UL");
-                    Toggle(); // Start the swapper
-                }
-            }
-        }
-        
+
         #endregion
+
     }
 }

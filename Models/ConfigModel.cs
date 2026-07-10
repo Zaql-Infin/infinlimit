@@ -37,6 +37,9 @@ namespace InfinLimit.Models
         public bool Overlay_DisplayOnlyTogglable { get; set; } = true;
         public int Overlay_LeftOffset { get; set; } = 0;
         public int Overlay_BottomOffset { get; set; } = 0;
+        public bool Overlay_FreePosition { get; set; } = false;
+        public double Overlay_FreeX { get; set; } = 50;
+        public double Overlay_FreeY { get; set; } = 50;
 
         public bool Window_Snow { get; set; } = true;
         public bool Window_DisplayClock { get; set; } = true;
@@ -69,15 +72,18 @@ namespace InfinLimit.Models
                     Settings[name] = 1.8d;
                 // SwapperModule specific defaults
                 else if (name == "Use3074Upload")
-                    Settings[name] = true;  // Default to 3074 UL enabled
-                else if (name == "Use3074Download" || name == "Use27kUpload" || name == "F1AfterSwaps")
-                    Settings[name] = false; // Default to false for other module options
+                    Settings[name] = true;
+                else if (name == "Use3074Download" || name == "Use27kUpload" || name == "F1AfterSwaps"
+                      || name == "AutoDisableBuffering" || name == "FullGame" || name == "OpenInventory")
+                    Settings[name] = false;
                 else if (name == "DamageLoadout" || name == "FinalLoadoutNumber")
                     Settings[name] = 1;     // Default to loadout 1
                 else if (name == "LoopDuration" || name == "SwapTimeOverall")
                     Settings[name] = 5000;  // Default to 5000ms
                 else if (name == "DelayBetweenLoadouts")
-                    Settings[name] = 30;    // Default to 30ms
+                    Settings[name] = 25;
+                else if (name == "UntickDelay")
+                    Settings[name] = 500;
                 else if (name == "ActivateModule")
                     Settings[name] = "3074 UL";  // Default to 3074 UL
                 else if (name == "SelectedLoadouts")

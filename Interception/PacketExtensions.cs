@@ -132,7 +132,7 @@ namespace InfinLimit.Interception.Modules
                 writer.Write(udpHeader);
             }
 
-            packet.CalcChecksums(addr);
+            packet.CalcChecksums(addr, ChecksumsFlag.All);
             return new Packet(packet, addr, p.SourceProvider.PortRangeStart, p.SourceProvider.PortRangeEnd, p.SourceProvider)
             {
                 Inbound = p.Inbound,

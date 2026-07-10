@@ -58,7 +58,7 @@ namespace InfinLimit.Models
             if (ParseResult is null)
                 throw new ArgumentNullException(nameof(ParseResult));
 
-            OriginalPacket.CalcChecksums(Addr);
+            OriginalPacket.CalcChecksums(Addr, ChecksumsFlag.All);
 
             SrcAddr = ParseResult.IPV4Header != null
                 ? ParseResult.IPV4Header->SrcAddr

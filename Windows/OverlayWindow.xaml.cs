@@ -1,4 +1,3 @@
-﻿using InfinLimit.Controls;
 using InfinLimit.Interception;
 using InfinLimit.Interception.Modules;
 using InfinLimit.Interception.PacketProviders;
@@ -7,117 +6,377 @@ using InfinLimit.Utility;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using System.Windows.Threading;
-
-using static System.Net.Mime.MediaTypeNames;
-
-using Path = System.Windows.Shapes.Path;
 
 namespace InfinLimit.Windows
 {
     public partial class OverlayWindow : Window
     {
-        [DllImport("user32.dll")]
-        static extern IntPtr GetForegroundWindow();
-        [DllImport("user32.dll")]
-        public static extern bool GetWindowRect(IntPtr hwnd, out RECT lpRect);
-        [StructLayout(LayoutKind.Sequential)]
         public struct RECT
         {
-            public int Left;
-            public int Top;
-            public int Right;
-            public int Bottom;
+            public int Left, Top, Right, Bottom;
         }
+
+        private struct FeatureRow
+        {
+            public string Label;
+            public Func<bool> EnabledGetter;
+            public Func<bool> ActiveGetter;
+            public Func<DateTime> SinceGetter;
+        }
+
+        private struct DualFeatureRow
+        {
+            public string Label;
+            public Func<bool> EnabledGetter;
+            public Func<bool> DlActiveGetter;
+            public Func<DateTime> DlSinceGetter;
+            public Func<bool> UlActiveGetter;
+            public Func<DateTime> UlSinceGetter;
+        }
+
+        private const int WS_EX_TOOLWINDOW = 0x80;
+        private const int WS_EX_TRANSPARENT = 0x20;
+        private const int GWL_EXSTYLE = -20;
+
+        private readonly DispatcherTimer _timer;
+        private readonly TimeSpan _activeInterval = TimeSpan.FromMilliseconds(500);
+        private readonly TimeSpan _idleInterval   = TimeSpan.FromSeconds(1.5);
+
+        private List<FeatureRow>     _featureRows = new();
+        private List<DualFeatureRow> _dualRows    = new();
+
+        private Dictionary<string, (Border row, Ellipse dot, Label timer)>                     _rowVisuals  = new();
+        private Dictionary<string, (Border row, Ellipse dot, Label dl, Label ul, Label timer)> _dualVisuals = new();
+
+        private Border _instanceRow;
+        private Label  _instanceTimer;
+        private Border _raidCountRow;
+        private Label  _raidCountLabel;
+        private Ellipse _raidCountDot;
+
+        private bool _dragging;
+
+        private static Process  cachedProcess        = null;
+        private static bool     LastGameFocusResult  = false;
+        private static DateTime lastCheckTime        = DateTime.MinValue;
+
+        public static OverlayWindow Current { get; private set; }
+
+        [DllImport("user32.dll")] private static extern IntPtr GetForegroundWindow();
+        [DllImport("user32.dll")] public  static extern bool   GetWindowRect(IntPtr hwnd, out RECT r);
+        [DllImport("user32.dll")] private static extern int    GetWindowLong(IntPtr hwnd, int index);
+        [DllImport("user32.dll")] private static extern int    SetWindowLong(IntPtr hwnd, int index, int style);
+        [DllImport("user32.dll")] private static extern uint   GetWindowThreadProcessId(IntPtr hwnd, out uint processId);
+
         protected override void OnSourceInitialized(EventArgs e)
         {
             base.OnSourceInitialized(e);
-
-            const int WS_EX_TOOLWINDOW = 0x00000080;
-            const int WS_EX_TRANSPARENT = 0x00000020;
-            const int GWL_EXSTYLE = -20;
-
-            [DllImport("user32.dll")]
-            static extern int GetWindowLong(IntPtr hwnd, int index);
-
-            [DllImport("user32.dll")]
-            static extern int SetWindowLong(IntPtr hwnd, int index, int newStyle);
-
-            var hwnd = new WindowInteropHelper(this).Handle;
-            var extendedStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
-            SetWindowLong(hwnd, GWL_EXSTYLE, extendedStyle | WS_EX_TRANSPARENT | WS_EX_TOOLWINDOW);
+            ApplyClickThrough();
         }
 
+        public void ApplyClickThrough()
+        {
+            var handle = new WindowInteropHelper(this).Handle;
+            if (handle == IntPtr.Zero) return;
+            int style = GetWindowLong(handle, GWL_EXSTYLE);
+            style = Config.Instance.Settings.Overlay_FreePosition
+                ? (style & ~WS_EX_TRANSPARENT)
+                : (style |  WS_EX_TRANSPARENT);
+            SetWindowLong(handle, GWL_EXSTYLE, style | WS_EX_TOOLWINDOW);
+        }
 
-
-        DispatcherTimer timer;
-        PacketModuleBase m;
-        XboxProvider provider;
-        TimeSpan delta = TimeSpan.FromSeconds(0.5);
         public OverlayWindow()
         {
             InitializeComponent();
-            provider = InterceptionManager.GetProvider("Xbox") as XboxProvider;
-            Topmost = true;
-            timer = new DispatcherTimer();
-            timer.Tick += Tick;
-            timer.Interval = delta;
-            timer.Start();
-            Closed += (s, e) => timer.Stop();
+            Current  = this;
+            Topmost  = true;
+
+            _timer = new DispatcherTimer(DispatcherPriority.Background) { Interval = _activeInterval };
+            _timer.Tick += Tick;
+            Closed += (_, __) => { Current = null; _timer.Stop(); };
+            Loaded += (_, __) =>
+            {
+                BuildFeatureRows();
+                BuildRowVisuals();
+                PositionFree();
+                _timer.Start();
+            };
         }
 
-        private async void Tick(object? sender, EventArgs e)
+        // ── row descriptors ─────────────────────────────────────────────────────
+
+        private void BuildFeatureRows()
         {
-            if (!CheckGameFocus())
-            {
-                Visibility = Visibility.Collapsed;
-                timer.Interval = TimeSpan.FromSeconds(1);
-                return;
-            }
-            // 1 3/3, 2 2/3
-            if (Config.Instance.Settings.Overlay_DisableOnInactivity)
-            {
-                var dur = provider.InstanceDuration();
-                if (dur == TimeSpan.Zero)
+            var pve    = InterceptionManager.Modules.OfType<PveModule>().FirstOrDefault();
+            var pvp    = InterceptionManager.Modules.OfType<PvpModule>().FirstOrDefault();
+            var inst   = InterceptionManager.Modules.OfType<InstanceModule>().FirstOrDefault();
+            var api    = InterceptionManager.Modules.OfType<ApiModule>().FirstOrDefault();
+            var pauser = InterceptionManager.Modules.OfType<PauserModule>().FirstOrDefault();
+
+            _featureRows.Clear();
+            _dualRows.Clear();
+
+            if (pve != null)
+                _dualRows.Add(new DualFeatureRow
                 {
-                    this.ElementFadeOut();
-                    return;
+                    Label          = "3074",
+                    EnabledGetter  = () => pve.IsEnabled,
+                    DlActiveGetter = () => PveModule.Inbound,
+                    DlSinceGetter  = () => pve.StartTime,
+                    UlActiveGetter = () => PveModule.Outbound,
+                    UlSinceGetter  = () => pve.StartTime,
+                });
+
+            if (pvp != null)
+                _dualRows.Add(new DualFeatureRow
+                {
+                    Label          = "27K",
+                    EnabledGetter  = () => pvp.IsEnabled,
+                    DlActiveGetter = () => PvpModule.Inbound,
+                    DlSinceGetter  = () => pvp.StartTime,
+                    UlActiveGetter = () => PvpModule.Outbound,
+                    UlSinceGetter  = () => pvp.StartTime,
+                });
+
+            if (inst != null)
+                _featureRows.Add(new FeatureRow
+                {
+                    Label         = "30K",
+                    EnabledGetter = () => inst.IsEnabled,
+                    ActiveGetter  = () => inst.IsActivated,
+                    SinceGetter   = () => inst.StartTime,
+                });
+
+            if (api != null)
+                _featureRows.Add(new FeatureRow
+                {
+                    Label         = "7500",
+                    EnabledGetter = () => api.IsEnabled,
+                    ActiveGetter  = () => api.IsActivated,
+                    SinceGetter   = () => api.StartTime,
+                });
+
+            if (pauser != null)
+                _featureRows.Add(new FeatureRow
+                {
+                    Label         = "Game Pauser",
+                    EnabledGetter = () => pauser.IsEnabled,
+                    ActiveGetter  = () => pauser.IsActivated,
+                    SinceGetter   = () => pauser.StartTime,
+                });
+        }
+
+        // ── build UI rows ────────────────────────────────────────────────────────
+
+        private void BuildRowVisuals()
+        {
+            Rows.Children.Clear();
+            _rowVisuals.Clear();
+            _dualVisuals.Clear();
+
+            // ── instance header (timer + divider) ───────────────────────────────
+            var instDot = Dot(9);
+            var instLbl = new Label { Content = "Instance", Foreground = Brushes.White, FontSize = 14, FontWeight = FontWeights.Bold, Padding = new Thickness(0), VerticalContentAlignment = VerticalAlignment.Center, Opacity = 0.9 };
+            _instanceTimer = new Label { Content = "", Foreground = Brushes.White, FontSize = 18, FontWeight = FontWeights.Bold, FontFamily = new FontFamily("Consolas"), Padding = new Thickness(10, 0, 0, 0), VerticalContentAlignment = VerticalAlignment.Center };
+            var instSp = H(instDot, instLbl, _instanceTimer);
+            var instDivider = new Rectangle { Height = 1, Fill = new SolidColorBrush(Color.FromArgb(60, 255, 255, 255)), Margin = new Thickness(0, 6, 0, 4) };
+            var instPanel = new StackPanel(); instPanel.Children.Add(instSp); instPanel.Children.Add(instDivider);
+            _instanceRow = new Border { Child = instPanel, Margin = new Thickness(0, 1, 0, 2), Visibility = Visibility.Collapsed };
+            Rows.Children.Add(_instanceRow);
+            _rowVisuals["__instance__"] = (_instanceRow, instDot, _instanceTimer);
+
+            // ── raid count row (+ divider) ───────────────────────────────────────
+            _raidCountDot   = Dot(9);
+            _raidCountLabel = new Label { Content = "", Foreground = Brushes.White, FontSize = 16, FontWeight = FontWeights.Bold, FontFamily = new FontFamily("Consolas"), Padding = new Thickness(0), VerticalContentAlignment = VerticalAlignment.Center };
+            var raidSp = H(_raidCountDot, _raidCountLabel);
+            var raidDivider = new Rectangle { Height = 1, Fill = new SolidColorBrush(Color.FromArgb(60, 255, 255, 255)), Margin = new Thickness(0, 6, 0, 4) };
+            var raidPanel = new StackPanel(); raidPanel.Children.Add(raidSp); raidPanel.Children.Add(raidDivider);
+            _raidCountRow = new Border { Child = raidPanel, Margin = new Thickness(0, 1, 0, 2), Visibility = Visibility.Collapsed };
+            Rows.Children.Add(_raidCountRow);
+
+            // ── dual rows (3074, 27K) ────────────────────────────────────────────
+            foreach (var dr in _dualRows)
+            {
+                var dot    = Dot(7);
+                var name   = NameLbl(dr.Label);
+                var dlTag  = DirTag("DL");
+                var ulTag  = DirTag("UL");
+                var tmr    = TimerLbl();
+                var border = Row(H(dot, name, dlTag, ulTag, tmr));
+                Rows.Children.Add(border);
+                _dualVisuals[dr.Label] = (border, dot, dlTag, ulTag, tmr);
+            }
+
+            // ── single rows (30K, 7500, Game Pauser) ────────────────────────────
+            foreach (var fr in _featureRows)
+            {
+                var dot    = Dot(7);
+                var name   = NameLbl(fr.Label);
+                var tmr    = TimerLbl();
+                var border = Row(H(dot, name, tmr));
+                Rows.Children.Add(border);
+                _rowVisuals[fr.Label] = (border, dot, tmr);
+            }
+
+            // helpers
+            static Ellipse Dot(double size) => new Ellipse { Width = size, Height = size, Fill = Brushes.Gray, Margin = new Thickness(0, 0, size < 9 ? 6 : 8, 0), VerticalAlignment = VerticalAlignment.Center };
+            static Label NameLbl(string text) => new Label { Content = text, Foreground = Brushes.White, FontSize = 12, Padding = new Thickness(0), VerticalContentAlignment = VerticalAlignment.Center, Opacity = 0.85 };
+            static Label DirTag(string text) => new Label { Content = text, FontSize = 9, FontWeight = FontWeights.Bold, FontFamily = new FontFamily("Consolas"), Padding = new Thickness(4, 0, 0, 0), VerticalContentAlignment = VerticalAlignment.Center, Foreground = Brushes.Gray, Opacity = 0.4 };
+            static Label TimerLbl() => new Label { Content = "", Foreground = Brushes.White, FontSize = 11, FontFamily = new FontFamily("Consolas"), Padding = new Thickness(6, 0, 0, 0), VerticalContentAlignment = VerticalAlignment.Center, Opacity = 0.6 };
+            static StackPanel H(params UIElement[] children) { var sp = new StackPanel { Orientation = Orientation.Horizontal }; foreach (var c in children) sp.Children.Add(c); return sp; }
+            static Border Row(UIElement content) => new Border { Child = content, Margin = new Thickness(0, 1, 0, 1), Visibility = Visibility.Collapsed };
+        }
+
+        // ── update logic ─────────────────────────────────────────────────────────
+
+        private static string FormatElapsed(TimeSpan t)
+        {
+            if (t <= TimeSpan.Zero) return "";
+            return t.TotalHours >= 1 ? t.ToString(@"hh\:mm\:ss") : t.ToString(@"mm\:ss");
+        }
+
+        private void RebuildRows()
+        {
+            var accent = (Application.Current.Resources["AccentColor"] as SolidColorBrush) ?? Brushes.LimeGreen;
+
+            // instance header
+            var xbox = InterceptionManager.GetProvider("Xbox") as XboxProvider;
+            if (xbox != null)
+            {
+                var dur = xbox.InstanceDuration();
+                bool show = dur > TimeSpan.Zero;
+                _instanceRow.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+                if (show)
+                {
+                    _rowVisuals["__instance__"].dot.Fill = accent;
+                    _instanceTimer.Content = FormatElapsed(dur);
                 }
             }
 
-            CheckModules();
-            CheckInstanceTimer();
+            // raid count
+            int raids = D2CharacterTracker.RaidsCount;
+            _raidCountRow.Visibility = raids > 0 ? Visibility.Visible : Visibility.Collapsed;
+            if (raids > 0)
+            {
+                _raidCountLabel.Content = $"Today: {raids} Raid{(raids == 1 ? "" : "s")}";
+                _raidCountDot.Fill = accent;
+            }
+
+            // dual rows — always visible, dimmed when disabled
+            foreach (var dr in _dualRows)
+            {
+                if (!_dualVisuals.TryGetValue(dr.Label, out var v)) continue;
+                bool enabled = dr.EnabledGetter();
+                v.row.Visibility = Visibility.Visible;
+                v.row.Opacity    = enabled ? 1.0 : 0.35;
+
+                bool dlOn = enabled && dr.DlActiveGetter();
+                bool ulOn = enabled && dr.UlActiveGetter();
+                v.dot.Fill      = (dlOn || ulOn) ? accent : Brushes.Gray;
+                v.dl.Foreground = dlOn ? accent : Brushes.Gray; v.dl.Opacity = dlOn ? 1.0 : 0.4;
+                v.ul.Foreground = ulOn ? accent : Brushes.Gray; v.ul.Opacity = ulOn ? 1.0 : 0.4;
+
+                DateTime since = DateTime.MinValue;
+                if (dlOn) since = dr.DlSinceGetter();
+                if (ulOn) { var s2 = dr.UlSinceGetter(); if (since == DateTime.MinValue || s2 < since) since = s2; }
+                v.timer.Content = FormatElapsed(since != DateTime.MinValue ? DateTime.Now - since : TimeSpan.Zero);
+            }
+
+            // single rows — always visible, dimmed when disabled
+            foreach (var fr in _featureRows)
+            {
+                if (!_rowVisuals.TryGetValue(fr.Label, out var v)) continue;
+                bool enabled = fr.EnabledGetter();
+                v.row.Visibility = Visibility.Visible;
+                v.row.Opacity    = enabled ? 1.0 : 0.35;
+
+                bool on = enabled && fr.ActiveGetter();
+                v.dot.Fill      = on ? accent : Brushes.Gray;
+                var since       = fr.SinceGetter();
+                v.timer.Content = FormatElapsed(on && since != DateTime.MinValue ? DateTime.Now - since : TimeSpan.Zero);
+            }
+
+            InvalidateMeasure();
+            UpdateLayout();
+        }
+
+        private void Tick(object? sender, EventArgs e)
+        {
+            if (!Config.Instance.Settings.Overlay_FreePosition && !CheckGameFocus())
+            {
+                Visibility = Visibility.Collapsed;
+                _timer.Interval = _idleInterval;
+                return;
+            }
 
             if (Visibility == Visibility.Collapsed)
             {
                 TryFollowWindow();
-                D2CharacterTracker.Update();
                 this.ElementFadeIn();
-                timer.Interval = delta;
+                _timer.Interval = _activeInterval;
             }
+            else
+            {
+                TryFollowWindow();
+            }
+
+            RebuildRows();
         }
 
+        // ── positioning ──────────────────────────────────────────────────────────
 
+        private void Border_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (!Config.Instance.Settings.Overlay_FreePosition) return;
+            _dragging = true;
+            DragMove();
+            _dragging = false;
+            ClampToScreen();
+            Config.Instance.Settings.Overlay_FreeX = Left;
+            Config.Instance.Settings.Overlay_FreeY = Top;
+            Config.Save();
+        }
 
-        static Process cachedProcess;
-        const string targetProcessName = "destiny2";
-        static bool LastGameFocusResult = false;
-        static DateTime lastCheckTime = DateTime.MinValue;
+        private void PositionFree()
+        {
+            if (!Config.Instance.Settings.Overlay_FreePosition) return;
+            Left = Config.Instance.Settings.Overlay_FreeX;
+            Top  = Config.Instance.Settings.Overlay_FreeY;
+            ClampToScreen();
+        }
+
+        public bool TryFollowWindow()
+        {
+            if (Config.Instance.Settings.Overlay_FreePosition) return true;
+            if (cachedProcess == null) return false;
+            if (!GetWindowRect(cachedProcess.MainWindowHandle, out var rect)) return false;
+
+            Left = rect.Left + 24 + Config.Instance.Settings.Overlay_LeftOffset;
+            Top  = rect.Bottom - 140 - Config.Instance.Settings.Overlay_BottomOffset;
+            ClampToScreen();
+            return true;
+        }
+
+        private void ClampToScreen()
+        {
+            var wa = SystemParameters.WorkArea;
+            if (Left < wa.Left) Left = wa.Left;
+            if (Top  < wa.Top)  Top  = wa.Top;
+            if (Left + ActualWidth  > wa.Right)  Left = Math.Max(wa.Left, wa.Right  - ActualWidth);
+            if (Top  + ActualHeight > wa.Bottom) Top  = Math.Max(wa.Top,  wa.Bottom - ActualHeight);
+        }
+
+        // ── game-focus check ─────────────────────────────────────────────────────
+
         public static bool CheckGameFocus(bool skipCheck = false)
         {
             if (!skipCheck && DateTime.Now - lastCheckTime < TimeSpan.FromSeconds(1))
@@ -127,9 +386,9 @@ namespace InfinLimit.Windows
 
             if (cachedProcess == null)
             {
-                var process = Process.GetProcessesByName(targetProcessName);
-                if (!process.Any()) return LastGameFocusResult = false;
-                cachedProcess = process.First();
+                var procs = Process.GetProcessesByName("destiny2");
+                if (!procs.Any()) return LastGameFocusResult = false;
+                cachedProcess = procs.First();
             }
 
             if (cachedProcess.HasExited)
@@ -138,171 +397,12 @@ namespace InfinLimit.Windows
                 return CheckGameFocus(skipCheck);
             }
 
-            if (!GetForegroundWindow().Equals(cachedProcess.MainWindowHandle))
-            {
+            GetWindowThreadProcessId(GetForegroundWindow(), out uint fgPid);
+            if (fgPid != (uint)cachedProcess.Id)
                 return LastGameFocusResult = false;
-            }
 
             lastCheckTime += TimeSpan.FromSeconds(1.5);
             return LastGameFocusResult = true;
-        }
-
-        public bool TryFollowWindow()
-        {
-            if (GetWindowRect(cachedProcess.MainWindowHandle, out var rect))
-            {
-                //TODO: 4k issue
-
-                double h_base = 1440d;
-                double w_base = 2560d;
-                var ratio_base = w_base / h_base;
-
-                double win_h = rect.Bottom - rect.Top;
-                double win_w = rect.Right - rect.Left;
-                var ratio = win_w / win_h;
-                
-                double x_multiplier = win_w / w_base;
-                double y_multiplier = win_h / h_base;
-
-                double yoffset = 0;
-                double xoffset = 0;
-
-                // widescreen
-                if (ratio > ratio_base) xoffset += (win_w - win_h * ratio_base) / 2;
-                if (ratio < ratio_base) yoffset += (win_h - win_w / ratio_base) / 2;
-                
-                // 345 200
-                Width = (win_w - xoffset * 2) / 4;
-                Height = (win_h - yoffset * 2) / 4;
-                //Logger.Debug($"{win_w}/{win_h} -> {Width}:{Height}, xoff-{xoffset}, yoff-{yoffset}");
-
-                Left = rect.Left + xoffset + 118 * (win_w - xoffset * 2) / w_base + Config.Instance.Settings.Overlay_LeftOffset;
-                Top = rect.Top + yoffset + ((win_h - yoffset * 2) * 3 / 4) - Config.Instance.Settings.Overlay_BottomOffset;
-
-                Scale.ScaleX = (win_w - xoffset * 2) / w_base;
-                Scale.ScaleY = (win_h - yoffset * 2) / h_base;
-
-                //Left = 0;
-                //Top = 0;
-                //Width = 2560 / 2;
-                //Height = 1440;
-                //Left = rect.Left + xoffset + 123d * x_multiplier;
-                //Top = rect.Bottom - yoffset - 318d * y_multiplier;
-                //Height = rect.Bottom - rect.Top - yoffset * 2;
-                //Width = Height * target;
-                //Width = 345d * x_multiplier * 2;
-                //Height = 200d * y_multiplier * 2;
-                return true;
-            }
-            return false;
-        }
-
-
-
-        Dictionary<PacketModuleBase, EnabledModuleTimer> modules = new();
-        private void CheckModules()
-        {
-            foreach (var m in InterceptionManager.Modules)
-            {
-                var c = modules.ContainsKey(m);
-                var e = m.IsEnabled;
-                var a = m.IsActivated;
-
-                // displayed
-                if (c)
-                {
-                    var ui = modules[m];
-
-                    if (!m.Togglable && Config.Instance.Settings.Overlay_DisplayOnlyTogglable && !a)
-                    {
-                        modules.Remove(m);
-                        ui.ElementFadeOut();
-                        Task.Run(async () =>
-                        {
-                            await Task.Delay(TimeSpan.FromSeconds(0.5));
-                            Dispatcher.Invoke(() => Modules.Children.Remove(ui));
-                        });
-                        continue;
-                    }
-
-                    // disabled = disappear
-                    if (!e)
-                    {
-                        modules.Remove(m);
-                        ui.ElementFadeOut();
-                        Task.Run(async () =>
-                        {
-                            await Task.Delay(TimeSpan.FromSeconds(0.5));
-                            Dispatcher.Invoke(() => Modules.Children.Remove(ui));
-                        });
-                        continue;
-                    }
-
-                    // enabled = count
-                    if (m.Togglable || !Config.Instance.Settings.Overlay_DisplayOnlyTogglable)
-                    {
-                        ui.UpdateTimer();
-                        continue;
-                    }
-                }
-
-                if (!m.Togglable && Config.Instance.Settings.Overlay_DisplayOnlyTogglable && !m.IsActivated)
-                {
-                    continue;
-                }
-
-                // Something got enabled
-                if (!c && e)
-                {
-                    var ui = new EnabledModuleTimer(m.Name) { Visibility = Visibility.Hidden };
-                    modules.Add(m, ui);
-                    Modules.Children.Add(ui);
-                    ui.ElementFadeIn();
-                }
-            }
-        }
-        private void CheckInstanceTimer()
-        {
-            if (D2CharacterTracker.RaidsCount > 0)
-            {
-                RaidLabel.Content = $"{D2CharacterTracker.RaidsCount}";
-                Raid.ElementFadeIn();
-            }
-            else
-            {
-                Raid.ElementFadeOut();
-            }
-
-
-            if (Config.Instance.Settings.Overlay_ShowTime)
-            {
-                Timer.Content = DateTime.Now.ToString("hh':'mm':'ss");
-                Timer.ElementFadeIn();
-            }
-            else 
-            {
-                if (!provider.IsEnabled || !Config.Instance.Settings.Overlay_ShowTimer)
-                {
-                    Timer.ElementFadeOut();
-                    return;
-                }
-
-                var duration = provider.InstanceDuration();
-                if (duration == TimeSpan.Zero)
-                {
-                    Timer.ElementFadeOut();
-                    return;
-                }
-
-                Timer.Content = duration.ToString("hh':'mm':'ss");
-                Timer.ElementFadeIn();
-
-                if (duration > TimeSpan.FromSeconds(30) && (Timer.Opacity < 0.5 || Timer.Visibility != Visibility.Visible))
-                {
-                    Timer.Opacity = 1;
-                    Timer.Visibility = Visibility.Visible;
-                }
-            }
         }
     }
 }

@@ -265,6 +265,7 @@ namespace InfinLimit
             if (_overWin == null)
             {
                 _overWin = new OverlayWindow();
+                _overWin.Show();
             }
             else
             {
@@ -386,6 +387,15 @@ namespace InfinLimit
             if (long.TryParse(InstRateLimitTB.Text, out long value) && value > 0)
             {
                 InstanceModule.TargetBytesPerSecond = value;
+                Config.Save();
+            }
+        }
+
+        private void ReconnectHoldTB_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (double.TryParse(ReconnectHoldTB.Text, out double value))
+            {
+                ReconnectModule.SetHoldSeconds(value);
                 Config.Save();
             }
         }
